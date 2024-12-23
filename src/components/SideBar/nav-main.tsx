@@ -1,12 +1,19 @@
-"use client"
+'use client'
 
-import { ChevronRight, Plus, ShoppingBasket, Users, type LucideIcon } from "lucide-react"
+import {
+  ChevronRight,
+  Home,
+  Plus,
+  ShoppingBasket,
+  Users,
+  type LucideIcon,
+} from 'lucide-react'
 
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible"
+} from '@/components/ui/collapsible'
 import {
   SidebarGroup,
   SidebarMenu,
@@ -15,7 +22,8 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-} from "@/components/ui/sidebar"
+} from '@/components/ui/sidebar'
+import Link from 'next/link'
 
 export function NavMain({
   items,
@@ -35,21 +43,28 @@ export function NavMain({
     <SidebarGroup>
       {/* <SidebarGroupLabel>Platform</SidebarGroupLabel> */}
       <SidebarMenu>
-
-
         <SidebarMenuItem>
-        
-            <SidebarMenuButton tooltip={"oo"}>
-              {<ShoppingBasket />}
-              <span>{"Items"}</span>
-              <Plus className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-            </SidebarMenuButton>
-            <SidebarMenuButton tooltip={"oo"}>
-              {<Users />}
-              <span>{"Parties"}</span>
-              <Plus className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"  />
-            </SidebarMenuButton>
-       
+          <SidebarMenuButton tooltip={'oo'}>
+            {<Home />}
+            <Link href={'/'} className=" w-full">
+              <span>{'Home'}</span>
+            </Link>
+            {/* <Plus className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" /> */}
+          </SidebarMenuButton>
+          <SidebarMenuButton tooltip={'oo'}>
+            {<ShoppingBasket />}
+            <Link href={'/items'} className=" w-full">
+              <span>{'Items'}</span>
+            </Link>
+            <Plus className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+          </SidebarMenuButton>
+          <SidebarMenuButton tooltip={'oo'}>
+            {<Users />}
+            <Link href={'/parties'} className=" w-full">
+              <span>{'Parties'}</span>
+            </Link>
+            <Plus className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+          </SidebarMenuButton>
         </SidebarMenuItem>
 
         {items.map((item) => (
