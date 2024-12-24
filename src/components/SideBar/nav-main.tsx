@@ -24,6 +24,8 @@ import {
   SidebarMenuSubItem,
 } from '@/components/ui/sidebar'
 import Link from 'next/link'
+import { useDispatch } from 'react-redux'
+import { openModal } from '@/redux/slices/modal'
 
 export function NavMain({
   items,
@@ -38,7 +40,17 @@ export function NavMain({
       url: string
     }[]
   }[]
-}) {
+  }) {
+  const dispatch = useDispatch()
+  
+  const openItemModal = () => {
+    dispatch(
+      openModal({
+        type: 'Items',
+      })
+         
+    )
+  }
   return (
     <SidebarGroup>
       {/* <SidebarGroupLabel>Platform</SidebarGroupLabel> */}
@@ -56,7 +68,7 @@ export function NavMain({
             <Link href={'/items'} className=" w-full">
               <span>{'Items'}</span>
             </Link>
-            <Plus className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+            <Plus className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" onClick={()=>openItemModal()} />
           </SidebarMenuButton>
           <SidebarMenuButton tooltip={'oo'}>
             {<Users />}
