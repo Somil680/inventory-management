@@ -29,8 +29,8 @@ const ModalManager: React.FC = () => {
   return (
     <section>
       {activeModal !== null && (
-        <div className=" fixed top-0 left-0 w-full h-full z-50 grid content-center items-center justify-items-center overflow-y-auto py-10 bg-[#000] opacity-60">
-          <main className="relative  w-[500px] h-[800px] bg-white ">
+        <div className=" fixed top-0 left-0 w-full h-full z-40 grid content-center items-center justify-items-center overflow-y-auto py-10 bg-[#00000077] ">
+          <main className="relative  w-[1200px] h-fit bg-white  z-50 ">
             {activeModal === 'Items' && <Item_modal />}
 
             <span

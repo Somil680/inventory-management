@@ -18,8 +18,9 @@ const dispatch  =  useDispatch()
     }
   return (
     <div>
-          THIS IS ITEM PAGE
-          <button onClick={()=>open()}>open</button>
+      THIS IS ITEM PAGE
+      <button onClick={() => open()}>open</button>
+     
     </div>
   )
 }
