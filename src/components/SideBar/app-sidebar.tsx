@@ -54,7 +54,7 @@ const data = {
       items: [
         {
           title: 'Sale Invoices',
-          url: '#',
+          url: '/sales',
         },
         {
           title: 'Estimate/ Quotation',

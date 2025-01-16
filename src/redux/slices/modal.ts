@@ -1,6 +1,6 @@
 // import { getData } from '@/services/requests.services'
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
-export type ModalType = null | 'Items' | unknown
+export type ModalType = null | 'Items' | 'Party'| unknown
 
 interface ModalState {
   activeModal: ModalType

@@ -3,12 +3,14 @@
   "productName": "Inventory Management",
   "version": "0.1.0",
   "identifier": "com.tauri.dev",
+
   "build": {
     "frontendDist": "../out",
     "devUrl": "http://localhost:3000",
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build"
   },
+
   "app": {
     "windows": [
       {
@@ -23,6 +25,7 @@
       "csp": null
     }
   },
+  
   "bundle": {
     "active": true,
     "targets": "all",
@@ -34,4 +37,8 @@
       "icons/icon.ico"
     ]
   }
+
+  
+
+
 }

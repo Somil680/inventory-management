@@ -51,6 +51,14 @@ export function NavMain({
          
     )
   }
+  const openPartyModal = () => {
+    dispatch(
+      openModal({
+        type: 'Party',
+      })
+         
+    )
+  }
   return (
     <SidebarGroup>
       {/* <SidebarGroupLabel>Platform</SidebarGroupLabel> */}
@@ -68,14 +76,20 @@ export function NavMain({
             <Link href={'/items'} className=" w-full">
               <span>{'Items'}</span>
             </Link>
-            <Plus className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" onClick={()=>openItemModal()} />
+            <Plus
+              className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
+              onClick={() => openItemModal()}
+            />
           </SidebarMenuButton>
           <SidebarMenuButton tooltip={'oo'}>
             {<Users />}
             <Link href={'/parties'} className=" w-full">
               <span>{'Parties'}</span>
             </Link>
-            <Plus className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+            <Plus
+              className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
+              onClick={() => openPartyModal()}
+            />
           </SidebarMenuButton>
         </SidebarMenuItem>
 
@@ -99,9 +113,9 @@ export function NavMain({
                   {item.items?.map((subItem) => (
                     <SidebarMenuSubItem key={subItem.title}>
                       <SidebarMenuSubButton asChild>
-                        <a href={subItem.url}>
+                        <Link href={subItem.url}>
                           <span>{subItem.title}</span>
-                        </a>
+                        </Link>
                       </SidebarMenuSubButton>
                     </SidebarMenuSubItem>
                   ))}
