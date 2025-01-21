@@ -1,10 +1,16 @@
 import { configureStore } from '@reduxjs/toolkit'
 import modalReducer from './slices/modal'
 import itemReducer from './slices/ItemData'
+import partyReducer from './slices/PartyData'
+import saleItemsReducer from './slices/saleItem'
+import invoicesReducer from './slices/InvoiceData'
 export const store = configureStore({
-    reducer: {
-      modal : modalReducer,
-      items : itemReducer
+  reducer: {
+    modal: modalReducer,
+    items: itemReducer,
+    party: partyReducer,
+    saleItems: saleItemsReducer,
+    invoices: invoicesReducer,
   },
 })
 

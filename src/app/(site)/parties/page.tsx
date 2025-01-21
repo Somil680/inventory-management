@@ -15,55 +15,109 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import {supabase} from '@/utils/supabase/server'
-import  {Party}  from '@/lib/type'
-
+import { supabase } from '@/utils/supabase/server'
+import type { Party } from '@/lib/type'
+import { formatDate } from '@/hooks/hook'
+import { setupPartyRealtime } from '@/redux/slices/PartyData'
+interface TransactionData {
+  bill_amount: number // Add bill_amount property
+  invoice_type: string // Add invoice_type property
+  invoice_date: string // Add invoice_date property
+  invoice_no: string // Add invoice_no property
+}
 const Party = () => {
-
-
-
-   const [productData, setProductData] = useState<Party[]>([])
-   console.log("🚀 ~ Party ~ productData:", [productData])
-   const [selectProduct, setSelectProduct] = useState<Party[]>()
-   console.log('🚀 ~ Items ~ selectProduct:', selectProduct)
+  const [productData, setProductData] = useState<Party[]>([])
+  console.log('🚀 ~ Party ~ productData:', [productData])
+  const [selectProduct, setSelectProduct] = useState<Party[]>()
+  console.log('🚀 ~ Items ~ selectProduct:', selectProduct)
   //  console.log('🚀 ~ Items ~ selectProduct:', typeof selectProduct)
-// 
-   async function fetchAllFromTable() {
-     const { data, error } = await supabase.from('party').select() // Select all columns
-     if (error) {
-       console.error('Error fetching data:', error)
-       return null // Or throw the error, depending on your needs
-     }
-     console.log('🚀 ~ fetchAllFromTable ~ data:', data)
+  //
+  async function fetchParties() {
+    const { data, error } = await supabase.from('party').select() // Select all columns
+    if (error) {
+      console.error('Error fetching data:', error)
+      return null // Or throw the error, depending on your needs
+    }
+    console.log('🚀 ~ fetchAllFromTable ~ data:', data)
 
-     return setProductData(data)
-   }
+    return setProductData(data)
+  }
+  // const [getData, setGetData] = useState<Invoice[]>([])
+  
+  // const getSaleData = async (id: string) => {
+  //   const { data, error } = await supabase
+  //     .from('sale')
+  //     .select()
+  //     .eq('customer_id', id) // Insert an array of objects
 
-   // async function insertIntoTable() {
-   //   const { data, error } = await supabase
-   //     .from('products')
-   //     .insert([{ id: '323' }]) // Insert an array of objects
+  //   if (error) {
+  //     console.error('Error inserting data:', error)
+  //     return null
+  //   }
 
-   //   if (error) {
-   //     console.error('Error inserting data:', error)
-   //     return null
-   //   }
+  //   console.log('🚀 ~ insertData ~ data:', data)
+  //   return setGetData(data)
+  // }
 
-   //   return data
-   // }
+  // async function insertIntoTable() {
+  //   const { data, error } = await supabase
+  //     .from('products')
+  //     .insert([{ id: '323' }]) // Insert an array of objects
 
-   const dispatch = useDispatch()
-   const open = () => {
-     dispatch(
-       openModal({
-         type: 'Party',
-       })
-     )
-     console.log('🚀 ~ open ~ open:')
-   }
+  //   if (error) {
+  //     console.error('Error inserting data:', error)
+  //     return null
+  //   }
+
+  //   return data
+  // }
+  const [transaction, setTransaction] = useState<TransactionData[]>([])
+  console.log('🚀 ~ Items ~ transaction:', transaction)
+  const getTransactionData = async (id: string): Promise<TransactionData[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('invoices')
+        .select(`*`)
+        .eq('party_id', id)
+      if (error) {
+        throw error
+      }
+
+      setTransaction(data)
+      return data
+
+      return []
+    } catch (error) {
+      console.error('Error fetching transaction data:', error)
+      return []
+    }
+  }
+
+  const dispatch = useDispatch()
+  const open = () => {
+    dispatch(
+      openModal({
+        type: 'Party',
+      })
+    )
+    console.log('🚀 ~ open ~ open:')
+  }
    useEffect(() => {
-     fetchAllFromTable()
-   }, [])
+     fetchParties()
+
+     const unsubscribe = setupPartyRealtime(dispatch) // Set up real-time listener
+
+     return () => {
+       unsubscribe() // Unsubscribe when the component unmounts
+     }
+   }, [dispatch])
+
+
+
+  const handleGetData = (item: Party) => {
+    // getSaleData(item.id)
+    setSelectProduct([item])
+  }
 
   return (
     <main className="w-full flex gap-3 h-[93vh] ">
@@ -91,7 +145,10 @@ const Party = () => {
               {productData.map((item) => (
                 <TableRow
                   key={item?.id}
-                  onClick={() => setSelectProduct([item])}
+                  onClick={() => {
+                    handleGetData(item)
+                    getTransactionData(item.id)
+                  }}
                 >
                   <TableCell className="font-medium">{item?.name}</TableCell>
                   <TableCell className="text-right">
@@ -119,7 +176,7 @@ const Party = () => {
                 ? selectProduct?.map((item) => item?.name)
                 : 'Select Product'}
             </p>
-            <Button onClick={() => fetchAllFromTable()}>
+            <Button >
               {/* <SlidersVertical /> */}
               Whatsapp
             </Button>
@@ -171,28 +228,29 @@ const Party = () => {
                   <TableHead className="w-[100px]">Invoice no.</TableHead>
                   <TableHead className="text-right">Date</TableHead>
                   <TableHead className="text-right">Total</TableHead>
-                  <TableHead className="text-right">Balance</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {/* {invoices.map((invoice) => (
-                  <TableRow key={invoice.item}>
-                    <TableCell className="font-medium">
-                      {invoice.item}
-                    </TableCell>
-                    <TableCell>{invoice.category}</TableCell>
-                    <TableCell className="text-right">
-                      {invoice.quantity}
-                    </TableCell>
-                    <TableCell className="text-right">=</TableCell>
-                  </TableRow>
-                ))} */}
-                <TableCell className="w-[100px]">Sale</TableCell>
-                <TableCell className="w-[100px]">2.</TableCell>
-                <TableCell className="text-right">OM</TableCell>
-                <TableCell className="text-right">12/12/12</TableCell>
-                <TableCell className="text-right">100</TableCell>
+                {transaction.map((item) => (
+                  <>
+                    <TableRow>
+                      <TableCell className="w-[100px]">
+                        {item.invoice_type}
+                      </TableCell>
+                      <TableCell className="w-[100px]">
+                        {item.invoice_no}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {formatDate(item.invoice_date)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {item.bill_amount}
+                      </TableCell>
+                    </TableRow>
+                  </>
+                ))}
               </TableBody>
+
               {/* <TableFooter>
               <TableRow>
                 <TableCell colSpan={3}>Total</TableCell>

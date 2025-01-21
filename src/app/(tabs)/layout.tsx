@@ -82,7 +82,6 @@ export default function RootLayout({
           >
             <X />
           </Link>
-    
         </div>
 
         {/* Tab Content */}
@@ -91,7 +90,7 @@ export default function RootLayout({
             (tab) =>
               tab.id === activeTab && (
                 <div key={tab.id} className="animate-fade-in">
-                  <div className="bg-[#fff] h-full">{children}</div>
+                  <div className="bg-[#f3f3f3] h-full">{children}</div>
                 </div>
               )
           )}

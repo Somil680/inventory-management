@@ -40,15 +40,14 @@ export function NavMain({
       url: string
     }[]
   }[]
-  }) {
+}) {
   const dispatch = useDispatch()
-  
+
   const openItemModal = () => {
     dispatch(
       openModal({
         type: 'Items',
       })
-         
     )
   }
   const openPartyModal = () => {
@@ -56,7 +55,6 @@ export function NavMain({
       openModal({
         type: 'Party',
       })
-         
     )
   }
   return (
@@ -104,7 +102,9 @@ export function NavMain({
               <CollapsibleTrigger asChild>
                 <SidebarMenuButton tooltip={item.title}>
                   {item.icon && <item.icon />}
-                  <span>{item.title}</span>
+                  <Link href={item.url}>
+                    <span>{item.title}</span>
+                  </Link>
                   <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                 </SidebarMenuButton>
               </CollapsibleTrigger>

@@ -48,7 +48,7 @@ const data = {
   navMain: [
     {
       title: 'Sales',
-      url: '#',
+      url: '/sale',
       icon: ReceiptIndianRupee,
       isActive: true,
       items: [
@@ -58,7 +58,7 @@ const data = {
         },
         {
           title: 'Estimate/ Quotation',
-          url: '#',
+          url: 'sale/estimate',
         },
         {
           title: 'Sale Order',
@@ -81,7 +81,7 @@ const data = {
       items: [
         {
           title: 'Purchase Bills',
-          url: '#',
+          url: '/purchase_bill',
         },
         {
           title: 'Payment Out',

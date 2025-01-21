@@ -1,41 +1,31 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
 import { supabase } from '@/utils/supabase/server' // Your Supabase client setup
+import { AppDispatch } from '../store'
+import {  Product } from '@/lib/type'
 
-// Define the type for your data (replace with your actual type)
-interface Item {
-  id: number
-  name: string
-  category: string
-  // ... other properties
-}
+// Define the type for your data
 
 
 interface ItemsState {
-  items: Item[]
+  items: Product[]
   loading: boolean
   error: string | null
 }
 
-// Async thunk for fetching items from Supabase with optional filters
-export const fetchItems = createAsyncThunk(
+// Async thunk for fetching items from Supabase
+export const fetchItems = createAsyncThunk<Product[], void, { rejectValue: string }>(
   'items/fetchItems',
   async (_, { rejectWithValue }) => {
-    // Remove filterOptions argument
     try {
       const { data, error } = await supabase.from('product').select('*')
-
       if (error) {
         return rejectWithValue(error.message)
       }
-
-      return data as Item[]
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        return rejectWithValue(error.message)
-      } else if (typeof error === 'string') {
-        return rejectWithValue(error)
-      }
-      return rejectWithValue('An unknown error occurred.') // Provide a default message
+      return data as Product[]
+    } catch (error) {
+      return rejectWithValue(
+        (error as Error)?.message || 'An unknown error occurred.'
+      )
     }
   }
 )
@@ -50,9 +40,20 @@ const itemsSlice = createSlice({
   name: 'items',
   initialState,
   reducers: {
-    // You can add synchronous reducers here if needed
     clearItems: (state) => {
       state.items = []
+    },
+    // Reducer to update a single item (used by real-time updates)
+    updateItem: (state, action: PayloadAction<Product>) => {
+      state.items = state.items.map((item) =>
+        item.id === action.payload.id ? action.payload : item
+      )
+    },
+    addItem: (state, action: PayloadAction<Product>) => {
+      state.items.push(action.payload)
+    },
+    deleteItem: (state, action: PayloadAction<string>) => {
+      state.items = state.items.filter((item) => item.id !== action.payload)
     },
   },
   extraReducers: (builder) => {
@@ -61,16 +62,44 @@ const itemsSlice = createSlice({
         state.loading = true
         state.error = null
       })
-      .addCase(fetchItems.fulfilled, (state, action: PayloadAction<Item[]>) => {
+      .addCase(fetchItems.fulfilled, (state, action) => {
         state.loading = false
         state.items = action.payload
       })
       .addCase(fetchItems.rejected, (state, action) => {
         state.loading = false
-        state.error = action.payload as string
+        state.error = action.payload || 'Failed to fetch items'
       })
   },
 })
 
-export const { clearItems } = itemsSlice.actions
+export const { clearItems, updateItem, addItem, deleteItem } =
+  itemsSlice.actions
+
+// Real-time listener setup (outside the component)
+export const setupItemRealtime = (dispatch: AppDispatch) => {
+  const channel = supabase.channel('public:product')
+
+  channel
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'product' },
+      (payload) => {
+        console.log('Realtime payload:', payload)
+        if (payload.eventType === 'UPDATE') {
+          dispatch(updateItem(payload.new as Product))
+        } else if (payload.eventType === 'INSERT') {
+          dispatch(addItem(payload.new as Product))
+        } else if (payload.eventType === 'DELETE') {
+          dispatch(deleteItem(payload.old.id))
+        }
+      }
+    )
+    .subscribe()
+
+  return () => {
+    supabase.removeChannel(channel)
+  }
+}
+
 export default itemsSlice.reducer

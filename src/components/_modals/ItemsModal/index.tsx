@@ -1,6 +1,6 @@
 'use client'
 import { Input } from '@/components/ui/input'
-import React, { ChangeEvent, useState } from 'react'
+import React, { ChangeEvent, useEffect, useState } from 'react'
 import {
   Select,
   SelectContent,
@@ -18,11 +18,12 @@ import { Product } from '@/lib/type'
 
 const ItemModal = () => {
   const [inputItem, setItemInput] = useState<Product>({
+    id: '',
     name: '',
     hsn: '',
     category: '',
-    sub_category: ' ',
-    unit: "",
+    sub_category: '',
+    unit: '',
     sale_price: null,
     purchase_price: null,
     taxes: '',
@@ -30,11 +31,56 @@ const ItemModal = () => {
     location: '',
     transaction: []
   })
-  console.log("🚀 ~ ItemModal ~ inputItem:", inputItem)
+    const [subCategoryData, setSubCategoryData] = useState<any[]>([])
+    const [categoryData, setCategoryData] = useState<any[]>([])
+   const fetchAllFromTable = async () => {
+      //  setLoading(true) // Set loading state before fetching
+      //  setError(null) // Clear any previous errors
+  
+      try {
+        const { data: subCategoryData, error: subCategoryError } = await supabase
+          .from('sub_category')
+          .select('*')
+        const { data: categoryData, error: categoryError } = await supabase
+          .from('category')
+          .select('*')
+
+        if (subCategoryError) {
+          throw subCategoryError
+        }
+        if (categoryError) {
+          throw categoryError
+        }
+        setSubCategoryData(subCategoryData)
+        setCategoryData(categoryData)
+        return {  subCategoryData, categoryData }
+      } catch (err) {
+        console.error('Error fetching data:', err)
+        //  setError(err.message || 'An error occurred while fetching data.') // Set error message
+        return null // Return null in case of error
+      } finally {
+        //  setLoading(false) // Set loading to false regardless of success or failure
+      }
+    }
+
 
 
   const insertData = async () => {
-    const { data, error } = await supabase.from('product').insert(inputItem).select() // Insert an array of objects
+    const Jsondata = {
+ 
+      name: inputItem.name,
+      hsn: inputItem.hsn,
+      category: inputItem.category,
+      sub_category: inputItem.sub_category,
+      unit: inputItem.unit,
+      sale_price: inputItem.sale_price,
+      purchase_price: inputItem.purchase_price,
+      taxes: inputItem.taxes,
+      opening_quantity: inputItem.opening_quantity,
+      location: inputItem.location,
+      transaction: inputItem.transaction,
+    }
+    const { data, error } = await supabase.from('product').insert(Jsondata).select() // Insert an array of objects
 
     if (error) {
       console.error('Error inserting data:', error)
@@ -58,7 +104,9 @@ const ItemModal = () => {
         }
       })
     }
-
+  useEffect(() => {
+    fetchAllFromTable()
+  }, [])
   return (
     <div className="">
       <h1 className=" p-6 text-xl text-black font-bold">Add Item</h1>
@@ -128,8 +176,13 @@ const ItemModal = () => {
                   Add New Category
                 </SelectLabel>
                 <Separator className="my-1" />
-                <SelectItem value="asian-paint">Asian Paints</SelectItem>
-                <SelectItem value="indigo">Indigo Paints</SelectItem>
+                {categoryData.map((item) => (
+                  <>
+                    <SelectItem key={item.id} value={item.title}>
+                      {item.title}
+                    </SelectItem>
+                  </>
+                ))}
               </SelectGroup>
             </SelectContent>
           </Select>
@@ -153,8 +206,13 @@ const ItemModal = () => {
                 </SelectLabel>
                 <Separator className="my-1" />
 
-                <SelectItem value="tactor">Tactor Emulsion</SelectItem>
-                <SelectItem value="ace">Ace Emulsion</SelectItem>
+                {subCategoryData.map((item) => (
+                  <>
+                    <SelectItem key={item.id} value={item.title}>
+                      {item.title}
+                    </SelectItem>
+                  </>
+                ))}
               </SelectGroup>
             </SelectContent>
           </Select>
@@ -235,7 +293,7 @@ const ItemModal = () => {
               <div className="flex gap-1 ">
                 <Select
                   // defaultValue="18"
-                  onValueChange={(value ) =>
+                  onValueChange={(value) =>
                     setItemInput((prev) => {
                       return {
                         ...prev,
@@ -271,13 +329,16 @@ const ItemModal = () => {
               className="w-[300px]"
               type="number"
               placeholder="Opening Quantity"
-              name='opening_quantity'
+              name="opening_quantity"
               onChange={handleInputChange}
             />
           </div>
           <div className="flex flex-col gap-4 bg-neutral-50 rounded-lg border p-4 w-1/2 ">
-            <Input className="w-[300px]" type="text" placeholder="Location"
-              name='location'
+            <Input
+              className="w-[300px]"
+              type="text"
+              placeholder="Location"
+              name="location"
               onChange={handleInputChange}
             />
           </div>
