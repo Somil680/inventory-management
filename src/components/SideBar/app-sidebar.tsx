@@ -1,5 +1,3 @@
-'use client'
-
 import * as React from 'react'
 import {
   AudioWaveform,
@@ -7,6 +5,7 @@ import {
   Command,
   GalleryVerticalEnd,
   ReceiptIndianRupee,
+  Landmark,
 } from 'lucide-react'
 
 import { NavMain } from '@/components/SideBar/nav-main'
@@ -26,7 +25,7 @@ const data = {
   user: {
     name: 'shadcn',
     email: 'm@example.com',
-    avatar: '/avatars/shadcn.jpg',
+    avatar: 'https://avatars.githubusercontent.com/u/1024025?v=4',
   },
   teams: [
     {
@@ -54,50 +53,57 @@ const data = {
       items: [
         {
           title: 'Sale Invoices',
-          url: '/sales',
+          url: '/sale/sale_bill',
         },
         {
           title: 'Estimate/ Quotation',
-          url: 'sale/estimate',
-        },
-        {
-          title: 'Sale Order',
-          url: '#',
-        },
-        {
-          title: 'Delivery Challan',
-          url: '#',
+          url: '/sale/estimate',
         },
         {
           title: 'Sale Return/ Cr. Note',
-          url: '#',
+          url: '/sale/sale_return',
         },
       ],
     },
     {
-      title: 'Purchase & Expense',
-      url: '#',
+      title: 'Purchase',
+      url: '/purchase',
       icon: ShoppingCart,
       items: [
         {
-          title: 'Purchase Bills',
-          url: '/purchase_bill',
+          title: 'Purchase Bill',
+          url: '/purchase/purchase_bill',
         },
         {
           title: 'Payment Out',
-          url: '#',
-        },
-        {
-          title: 'Expenses',
-          url: '#',
-        },
-        {
-          title: 'Purchase Order',
-          url: '#',
+          url: '/purchase/payment_out',
         },
         {
           title: 'Purchase Return/ Dr. Note',
-          url: '#',
+          url: '/purchase/purchase_return',
+        },
+      ],
+    },
+    {
+      title: 'Cash & Bank',
+      url: '',
+      icon: Landmark,
+      items: [
+        {
+          title: 'Bank Account',
+          url: '/cash&bank/bank_account',
+        },
+        {
+          title: 'Hand in Cash',
+          url: '/cash&bank/cash_in_hand',
+        },
+        {
+          title: 'Cheque',
+          url: '',
+        },
+        {
+          title: 'Loan',
+          url: '',
         },
       ],
     },

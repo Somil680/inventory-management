@@ -33,7 +33,7 @@ const SaleInputTable: React.FC = () => {
   console.log("🚀 ~ invoices:", invoices)
    const [invoice, setInvoice] = useState<Invoice>({
      invoice_no:  (invoices.length+1).toString(),
-     invoice_date: Date.now(),
+     invoice_date: new Date(),
      invoice_type: 'cash',
      party_id: '',
      bill_amount: 0,

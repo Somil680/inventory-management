@@ -1,0 +1,168 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["relationJoins"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL")
+}
+
+model category {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at       DateTime       @default(now()) @db.Timestamptz(6)
+  title            String?
+  product_category product[]      @relation("product_categoryTocategory")
+  sub_category     sub_category[]
+}
+
+model sub_category {
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at           DateTime  @default(now()) @db.Timestamptz(6)
+  title                String?
+  category_id          String?   @db.Uuid
+  product_sub_category product[] @relation("product_sub_categoryTosub_category")
+  category             category? @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model product {
+  id                   String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                 String
+  hsn                  String?
+  unit                 String?
+  opening_quantity     Int?              @default(0)
+  location             String?
+  created_at           DateTime?         @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime?         @default(now()) @db.Timestamptz(6)
+  sale_price           Int?
+  purchase_price       Int?
+  category             String?           @db.Uuid
+  sub_category         String?           @db.Uuid
+  taxs                 Int?
+  invoice_product      invoice_product[]
+  category_product     category?         @relation("product_categoryTocategory", fields: [category], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  sub_category_product sub_category?     @relation("product_sub_categoryTosub_category", fields: [sub_category], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model invoice {
+  id                 String            @id(map: "invoices_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  invoice_no         String?
+  invoice_date       DateTime?         @db.Timestamp(6)
+  invoice_type       invoice_type?
+  billing_name       String?
+  party_id           String?           @db.Uuid
+  discount_on_amount Int?              @default(0)
+  bill_amount        Int?
+  payment_type       String?           @db.Uuid
+  party              party?            @relation(fields: [party_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "invoices_party_id_fkey")
+  payment            payment?          @relation(fields: [payment_type], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "invoices_payment_id_fkey")
+  invoice_product    invoice_product[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model invoice_product {
+  id             String  @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  invoice_id     String  @db.Uuid
+  product_id     String  @db.Uuid
+  qty            Int
+  rate           Int
+  price_per_unit Int
+  amount         Int
+  description    String?
+  invoice        invoice @relation(fields: [invoice_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  product        product @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([id, invoice_id])
+  @@unique([invoice_id, product_id], map: "invoice_product_unique_combination")
+}
+
+model party {
+  id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name           String
+  contact        BigInt?
+  gstIn          String?
+  gst_type       gst_category?
+  address        String?
+  email          String?
+  created_at     DateTime?     @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime?     @default(now()) @db.Timestamptz(6)
+  pay_amount     Int?
+  receive_amount Int?
+  isActive       Boolean?      @default(true)
+  invoice        invoice[]
+}
+
+model payment {
+  id                                                      String             @id(map: "payment_key") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at                                              DateTime           @default(now()) @db.Timestamptz(6)
+  IFSC_code                                               String?
+  account_holder_name                                     String?
+  account_name                                            String?
+  account_number                                          Int?
+  balance                                                 Int?
+  update_at                                               DateTime           @default(now()) @db.Timestamptz(6)
+  upi_number                                              String?
+  bank_transaction_bank_transaction_from_bank_idTopayment bank_transaction[] @relation("bank_transaction_from_bank_idTopayment")
+  bank_transaction                                        bank_transaction[]
+  expenses                                                expenses[]
+  invoice                                                 invoice[]
+}
+
+model bank_transaction {
+  id                                             String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  description                                    String?
+  date                                           DateTime?             @db.Date
+  balance                                        Decimal?              @db.Decimal
+  from_bank_id                                   String?               @db.Uuid
+  to_bank_id                                     String?               @db.Uuid
+  transaction_type                               bankTransaction_type?
+  payment_bank_transaction_from_bank_idTopayment payment?              @relation("bank_transaction_from_bank_idTopayment", fields: [from_bank_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bank_from_fkey")
+  payment                                        payment?              @relation(fields: [to_bank_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "banktransaction_From_To_fkey")
+}
+
+model expenses {
+  id                String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  expense_category  String?            @db.Uuid
+  bill_amount       Int?
+  item              String?
+  expense_date      DateTime?          @db.Date
+  payment_type      String?            @db.Uuid
+  expenses_category expenses_category? @relation("expenses_expense_categoryToexpense_category", fields: [expense_category], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "expense_category_fkey")
+  payment           payment?           @relation(fields: [payment_type], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model expenses_category {
+  id               String     @id(map: "expense_category_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title            String?
+  expense_balance  Decimal?   @db.Decimal
+  expense_category expenses[] @relation("expenses_expense_categoryToexpense_category")
+}
+
+enum gst_category {
+  reg_composite
+  unregistered
+  reg_regular
+}
+
+enum invoice_type {
+  cash
+  purchase
+  sale_return
+  purchase_return
+  add_stock
+  reduce_stock
+  payment_in
+  payment_out
+  credit
+}
+
+enum bankTransaction_type {
+  cash_withdrawal          @map("cash withdrawal")
+  cash_deposit             @map("cash deposit")
+  opening_balance          @map("opening balance")
+  bank_to_bank             @map("bank to bank")
+  bank_adjustment_increase @map("bank adjustment increase")
+  bank_adjustment_decrease @map("bank adjustment decrease")
+}

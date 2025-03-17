@@ -1,6 +1,8 @@
 'use client'
 // import type { Metadata } from 'next'
 // import './globals.css'
+import { Toaster } from '@/components/ui/sonner'
+
 import { AppSidebar } from '@/components/SideBar/app-sidebar'
 import {
   SidebarInset,
@@ -19,8 +21,8 @@ export default function RootLayout({
     <div className="w-full   flex bg-primary text-black">
       <SidebarProvider>
         <AppSidebar />
-        <SidebarInset>
-          <header className="border flex  h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+        <SidebarInset >
+          <header className="border flex  h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 ">
             <div className="flex justify-between w-full items-center gap-2 px-4">
               <SidebarTrigger className="-ml-1" />
               <div className="flex justify-center gap-2">
@@ -36,6 +38,7 @@ export default function RootLayout({
             </div>
           </header>
           <div className="bg-[#cfdbe6] h-full">{children}</div>
+          <Toaster richColors  position='top-right' theme='light'/>
         </SidebarInset>
       </SidebarProvider>
       <ModalManager />

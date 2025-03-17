@@ -2,10 +2,12 @@
 
 import {
   ChevronRight,
+  Group,
   Home,
   Plus,
   ShoppingBasket,
   Users,
+  Wallet,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -70,6 +72,13 @@ export function NavMain({
             {/* <Plus className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" /> */}
           </SidebarMenuButton>
           <SidebarMenuButton tooltip={'oo'}>
+            {<Group />}
+            <Link href={'/properties'} className=" w-full">
+              <span>{'Properties'}</span>
+            </Link>
+            {/* <Plus className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" /> */}
+          </SidebarMenuButton>
+          <SidebarMenuButton tooltip={'oo'}>
             {<ShoppingBasket />}
             <Link href={'/items'} className=" w-full">
               <span>{'Items'}</span>
@@ -89,41 +98,51 @@ export function NavMain({
               onClick={() => openPartyModal()}
             />
           </SidebarMenuButton>
+          {items.map((item) => (
+            <Collapsible
+              key={item.title}
+              asChild
+              defaultOpen={item.isActive}
+              className="group/collapsible"
+            >
+              <SidebarMenuItem>
+                <CollapsibleTrigger asChild>
+                  <SidebarMenuButton tooltip={item.title}>
+                    {item.icon && <item.icon />}
+                    <Link href={item.url}>
+                      <span>{item.title}</span>
+                    </Link>
+                    <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                  </SidebarMenuButton>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <SidebarMenuSub>
+                    {item.items?.map((subItem) => (
+                      <SidebarMenuSubItem key={subItem.title}>
+                        <SidebarMenuSubButton asChild>
+                          <Link href={subItem.url}>
+                            <span>{subItem.title}</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    ))}
+                  </SidebarMenuSub>
+                </CollapsibleContent>
+              </SidebarMenuItem>
+            </Collapsible>
+          ))}
+          <SidebarMenuButton tooltip={'oo'}>
+            {<Wallet/>}
+            <Link href={'/expenses'} className=" w-full">
+              <span>{'Expenses'}</span>
+            </Link>
+            <Plus
+              className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
+              onClick={() => openPartyModal()}
+            />
+          </SidebarMenuButton>
+       
         </SidebarMenuItem>
-
-        {items.map((item) => (
-          <Collapsible
-            key={item.title}
-            asChild
-            defaultOpen={item.isActive}
-            className="group/collapsible"
-          >
-            <SidebarMenuItem>
-              <CollapsibleTrigger asChild>
-                <SidebarMenuButton tooltip={item.title}>
-                  {item.icon && <item.icon />}
-                  <Link href={item.url}>
-                    <span>{item.title}</span>
-                  </Link>
-                  <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                </SidebarMenuButton>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarMenuSub>
-                  {item.items?.map((subItem) => (
-                    <SidebarMenuSubItem key={subItem.title}>
-                      <SidebarMenuSubButton asChild>
-                        <Link href={subItem.url}>
-                          <span>{subItem.title}</span>
-                        </Link>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
-                  ))}
-                </SidebarMenuSub>
-              </CollapsibleContent>
-            </SidebarMenuItem>
-          </Collapsible>
-        ))}
       </SidebarMenu>
     </SidebarGroup>
   )

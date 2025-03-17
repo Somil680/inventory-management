@@ -1,140 +1,171 @@
 'use client'
-import { Input } from '@/components/ui/input'
 import React, { ChangeEvent, useEffect, useState } from 'react'
 import {
   Select,
   SelectContent,
   SelectGroup,
   SelectItem,
-  SelectLabel,
-  // SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import {supabase} from '@/utils/supabase/server'
 import { Product } from '@/lib/type'
-
+import FloatingInput from '@/components/ui/floating-input'
+import { closeModal } from '@/redux/slices/modal'
+import { useDispatch, useSelector } from 'react-redux'
+import { toast } from 'sonner'
+import CategorySubcategorySelect from '@/components/categorySelect'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { createProduct, updateProduct } from '@/lib/productAction'
+import { RootState } from '@/redux/store'
 const ItemModal = () => {
+  const dispatch = useDispatch()
+  const queryClient = useQueryClient()
+  const { editData } = useSelector((state: RootState) => state.modal) as {
+    editData: Product
+  }
   const [inputItem, setItemInput] = useState<Product>({
     id: '',
     name: '',
     hsn: '',
     category: '',
     sub_category: '',
-    unit: '',
+    unit: null,
     sale_price: null,
     purchase_price: null,
-    taxes: '',
+    taxs: 18,
     opening_quantity: null,
     location: '',
-    transaction: []
   })
-    const [subCategoryData, setSubCategoryData] = useState<any[]>([])
-    const [categoryData, setCategoryData] = useState<any[]>([])
-   const fetchAllFromTable = async () => {
-      //  setLoading(true) // Set loading state before fetching
-      //  setError(null) // Clear any previous errors
-  
-      try {
-        const { data: subCategoryData, error: subCategoryError } = await supabase
-          .from('sub_category')
-          .select('*')
-        const { data: categoryData, error: categoryError } = await supabase
-          .from('category')
-          .select('*')
 
-        if (subCategoryError) {
-          throw subCategoryError
-        }
-        if (categoryError) {
-          throw categoryError
-        }
-        setSubCategoryData(subCategoryData)
-        setCategoryData(categoryData)
-        return {  subCategoryData, categoryData }
-      } catch (err) {
-        console.error('Error fetching data:', err)
-        //  setError(err.message || 'An error occurred while fetching data.') // Set error message
-        return null // Return null in case of error
-      } finally {
-        //  setLoading(false) // Set loading to false regardless of success or failure
-      }
-    }
-
-
-
-  const insertData = async () => {
-    const Jsondata = {
- 
-      name: inputItem.name,
-      hsn: inputItem.hsn,
-      category: inputItem.category,
-      sub_category: inputItem.sub_category,
-      unit: inputItem.unit,
-      sale_price: inputItem.sale_price,
-      purchase_price: inputItem.purchase_price,
-      taxes: inputItem.taxes,
-      opening_quantity: inputItem.opening_quantity,
-      location: inputItem.location,
-      transaction: inputItem.transaction,
-    }
-    const { data, error } = await supabase.from('product').insert(Jsondata).select() // Insert an array of objects
-
-    if (error) {
-      console.error('Error inserting data:', error)
-      return null
-    }
-
-    console.log('🚀 ~ insertData ~ data:', data)
-    return data
-  } 
-
-   const handleInputChange = (
-     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-   ) => {
-     const { name, value } = e.target
-     
-     console.log('🚀 ~ setItemInput ~ setItemInput:', inputItem)
-     setItemInput((prev) => {
-       return {
-         ...prev,
-         [name]: value,
+  // console.log('🚀 ~ ItemModal ~ editData:', editData)
+  useEffect(() => {
+    // if (!editData) return
+    if (!editData) return
+    if (editData) {
+      setItemInput((prev) => {
+        console.log('🚀 ~ useEffect ~ editData:', '', editData)
+        return {
+          ...prev,
+          id: editData.id ?? '',
+          name: editData.name ?? '',
+          hsn: editData.hsn,
+          category: editData.category,
+          sub_category: editData.sub_category,
+          unit: editData.unit,
+          sale_price: editData.sale_price,
+          purchase_price: editData.purchase_price,
+          taxs: editData.taxs,
+          opening_quantity: editData.opening_quantity,
+          location: editData.location,
         }
       })
     }
-  useEffect(() => {
-    fetchAllFromTable()
-  }, [])
+  }, [editData])
+  console.log('🚀 ~ ItemModal ~ inputItem:', inputItem)
+
+  const handleInputChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target
+    setItemInput((prev) => {
+      return {
+        ...prev,
+        [name]: value,
+      }
+    })
+  }
+
+  const createProducts = useMutation({
+    mutationFn: createProduct,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['Product'] })
+      toast.success(`Successfully creating on Product`)
+    },
+    onError: (error) => {
+      toast.error(`Error creating on Product: ${error.message}`)
+    },
+  })
+  const handleUpdateProduct = useMutation({
+    mutationFn: () => updateProduct(inputItem, editData.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['Product'] })
+      toast.success(`Successfully Update`)
+    },
+    onError: (error) => {
+      toast.error(`Error  on update Product: ${error.message}`)
+    },
+  })
+
+  const insertData = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const submitType: string | undefined = (
+      (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null
+    )?.name
+    try {
+      if (!editData) {
+        createProducts.mutate(inputItem)
+      } else {
+        handleUpdateProduct.mutate()
+      }
+    } catch (error) {
+      console.log('🚀 ~ insertData ~ error:', error)
+      if (error instanceof Error) {
+        toast.error(error.message)
+      } else {
+        toast.error('An unknown error occurred')
+      }
+    }
+    if (submitType === 'save') {
+      dispatch(closeModal())
+    } else if (submitType === 'saveandnew') { 
+      setItemInput({
+        id: '',
+        name: '',
+        hsn: '',
+        category: '',
+        sub_category: '',
+        unit: null,
+        sale_price: null,
+        purchase_price: null,
+        taxs: 18,
+        opening_quantity: null,
+        location: '',
+      })
+    }
+  }
   return (
     <div className="">
-      <h1 className=" p-6 text-xl text-black font-bold">Add Item</h1>
+      <h1 className=" p-6 text-xl text-black font-bold">
+        {!editData ? 'Add Item' : 'Update Item'}
+      </h1>
       <hr />
-      <div className="p-6 flex flex-col gap-4 ">
+      <form className="p-6 flex flex-col gap-4 " onSubmit={insertData}>
         <div className="flex gap-4 items-center">
-          <Input
-            className="w-[300px] "
-            type="text"
-            placeholder="Item name"
+          <FloatingInput
+            label="Product Name"
             name="name"
+            value={inputItem.name}
+            required
             onChange={handleInputChange}
           />
-          <Input
-            className="w-[300px] "
-            type="text"
-            placeholder="Item HSN"
+          <FloatingInput
+            label="Product HSN"
             name="hsn"
+            value={inputItem.hsn}
             onChange={handleInputChange}
+            required
           />
           <Select
+            required
+            name="unit"
+            value={inputItem.unit ?? ''}
             onValueChange={(value) =>
-              setItemInput((prev) => {
-                return {
-                  ...prev,
-                  unit: value,
-                }
-              })
+              setItemInput((prev) => ({
+                ...prev,
+                unit: value,
+              }))
             }
           >
             <SelectTrigger className="w-[300px]">
@@ -142,10 +173,8 @@ const ItemModal = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                {/* <SelectLabel className="text-blue-600 bg-blue-100 rounded-full px-2 flex items-center justify-center">
-                   Unit
-                </SelectLabel> */}
                 <Separator className="my-1" />
+                <SelectItem value="null">None</SelectItem>
                 <SelectItem value="liter">LTR</SelectItem>
                 <SelectItem value="bucket">BUK</SelectItem>
                 <SelectItem value="cartoon">CART</SelectItem>
@@ -154,70 +183,40 @@ const ItemModal = () => {
                 <SelectItem value="gram">GR</SelectItem>
               </SelectGroup>
             </SelectContent>
-          </Select>{' '}
+          </Select>
         </div>
+
         <div className="flex gap-4 items-center">
           <Select
+            required
+            // defaultValue="18"
+            // value={inputItem.taxes ?? 18}
             onValueChange={(value) =>
               setItemInput((prev) => {
                 return {
                   ...prev,
-                  category: value,
+                  taxes: Number(value),
                 }
               })
             }
           >
-            <SelectTrigger className="w-[300px]">
-              <SelectValue placeholder="Category" />
+            <SelectTrigger className="w-[120px] ">
+              <SelectValue placeholder="Taxes Rate" />
             </SelectTrigger>
             <SelectContent>
-              <SelectGroup>
-                <SelectLabel className="text-blue-600 bg-blue-100 rounded-full px-2 flex items-center justify-center">
-                  Add New Category
-                </SelectLabel>
-                <Separator className="my-1" />
-                {categoryData.map((item) => (
-                  <>
-                    <SelectItem key={item.id} value={item.title}>
-                      {item.title}
-                    </SelectItem>
-                  </>
-                ))}
-              </SelectGroup>
+              <SelectItem value="5"> GST 5%</SelectItem>
+              <SelectItem value="12">GST 12%</SelectItem>
+              <SelectItem value="18">GST 18%</SelectItem>
+              <SelectItem value="28">GST 28%</SelectItem>
             </SelectContent>
           </Select>
-          <Select
-            onValueChange={(value) =>
-              setItemInput((prev) => {
-                return {
-                  ...prev,
-                  sub_category: value,
-                }
-              })
-            }
-          >
-            <SelectTrigger className="w-[300px]">
-              <SelectValue placeholder="Sub Category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectLabel className="text-blue-600 bg-blue-100 rounded-full px-2 flex items-center justify-center">
-                  Add New SubCategory
-                </SelectLabel>
-                <Separator className="my-1" />
 
-                {subCategoryData.map((item) => (
-                  <>
-                    <SelectItem key={item.id} value={item.title}>
-                      {item.title}
-                    </SelectItem>
-                  </>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+          <CategorySubcategorySelect
+            inputItem={inputItem}
+            setItemInput={setItemInput}
+          />
         </div>
-        {/* Separator */}
+
         <div className="w-full border-b">
           <p className="text-red-500 font-semibold text-md px-3 py-1 border-b-2  border-red-500 w-fit ">
             Pricing
@@ -225,98 +224,25 @@ const ItemModal = () => {
         </div>
 
         <div className="  flex gap-3 ">
-          <div className="flex flex-col gap-4 bg-neutral-50 rounded-lg border p-4 w-1/2  ">
-            <p className="font-semibold text-sm">Sale Price</p>
-            <div className="flex gap-1 ">
-              <Input
-                className="w-[300px]"
-                type="number"
-                placeholder="Sale Price"
-                name="sale_price"
-                onChange={handleInputChange}
-              />
-              {/* <Select defaultValue="without_tax">
-                <SelectTrigger className="w-[120px] ">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="without_tax">Without Tax</SelectItem>
-                  <SelectItem value="with_tax">With Tax</SelectItem>
-                </SelectContent>
-              </Select> */}
-            </div>
-            {/* <div className="flex gap-1">
-              <Input
-                className="w-[300px]"
-                type="number"
-                placeholder="Discount on Sale Price"
-                name="name"
-                onChange={handleInputChange}
-              />
-              <Select defaultValue="percentage">
-                <SelectTrigger className="w-[120px] ">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="amount">Amount</SelectItem>
-                  <SelectItem value="percentage">Percentage</SelectItem>
-                </SelectContent>
-              </Select>
-            </div> */}
-          </div>
+          <FloatingInput
+            label="Sale Price"
+            type="number"
+            name="sale_price"
+            required
+            value={inputItem.sale_price ?? ''}
+            onChange={handleInputChange}
+          />
 
-          <div className="flex flex-col  gap-3 w-1/2">
-            <div className="flex flex-col gap-4 bg-neutral-50 rounded-lg border p-4 ">
-              <p className="font-semibold text-sm">Purchase Price</p>
-
-              <div className="flex gap-1 ">
-                <Input
-                  className="w-[300px]"
-                  type="number"
-                  placeholder="Purchase Price"
-                  name="purchase_price"
-                  onChange={handleInputChange}
-                />
-                {/* <Select defaultValue="without_tax">
-                  <SelectTrigger className="w-[120px] ">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="without_tax">Without Tax</SelectItem>
-                    <SelectItem value="with_tax">With Tax</SelectItem>
-                  </SelectContent>
-                </Select> */}
-              </div>
-            </div>
-            <div className="flex flex-col gap-4 bg-neutral-50 rounded-lg border p-4 ">
-              <p className="font-semibold text-sm">Taxes</p>
-              <div className="flex gap-1 ">
-                <Select
-                  // defaultValue="18"
-                  onValueChange={(value) =>
-                    setItemInput((prev) => {
-                      return {
-                        ...prev,
-                        taxes: value,
-                      }
-                    })
-                  }
-                >
-                  <SelectTrigger className="w-[120px] ">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="5">5%</SelectItem>
-                    <SelectItem value="12">12%</SelectItem>
-                    <SelectItem value="18">18%</SelectItem>
-                    <SelectItem value="28">28%</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
+          <FloatingInput
+            label="Purchase Price"
+            type="number"
+            name="purchase_price"
+            required
+            value={inputItem.purchase_price ?? ''}
+            onChange={handleInputChange}
+          />
         </div>
-        {/* Separator */}
+
         <div className="w-full border-b">
           <p className="text-red-500 font-semibold text-md px-3 py-1 border-b-2  border-red-500 w-fit ">
             Stocks
@@ -324,32 +250,31 @@ const ItemModal = () => {
         </div>
 
         <div className="  flex gap-3 ">
-          <div className="flex flex-col gap-4 bg-neutral-50 rounded-lg border p-4 w-1/2  ">
-            <Input
-              className="w-[300px]"
-              type="number"
-              placeholder="Opening Quantity"
-              name="opening_quantity"
-              onChange={handleInputChange}
-            />
-          </div>
-          <div className="flex flex-col gap-4 bg-neutral-50 rounded-lg border p-4 w-1/2 ">
-            <Input
-              className="w-[300px]"
-              type="text"
-              placeholder="Location"
-              name="location"
-              onChange={handleInputChange}
-            />
-          </div>
+          <FloatingInput
+            label="Opening quantity"
+            type="number"
+            name="opening_quantity"
+            required
+            value={inputItem.opening_quantity ?? ''}
+            onChange={handleInputChange}
+          />
+          <FloatingInput
+            label="Location"
+            type="text"
+            name="location"
+            value={inputItem.location}
+            onChange={handleInputChange}
+          />
         </div>
         <div className="border-t pt-4 gap-5 flex justify-end items-end ">
-          <Button className="" variant={'secondary'}>
-            Save & New
-          </Button>
-          <Button onClick={() => insertData()}>Save</Button>
+          {!editData && (
+            <Button variant={'secondary'} name="saveandnew">
+              Save & New
+            </Button>
+          )}
+          <Button name="save">Save</Button>
         </div>
-      </div>
+      </form>
     </div>
   )
 }

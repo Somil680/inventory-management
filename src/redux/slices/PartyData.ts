@@ -86,7 +86,7 @@ const partySlice = createSlice({
 export const { clearItems, updateItem, addItem, deleteItem } = partySlice.actions
 // Real-time listener setup (outside the component)
 export const setupPartyRealtime = (dispatch: AppDispatch) => {
-  const channel = supabase.channel('public:product')
+  const channel = supabase.channel('public:party')
 
   channel
     .on(

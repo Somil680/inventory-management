@@ -10,56 +10,94 @@ import { Button } from '@/components/ui/button'
 import FloatingInput from '@/components/ui/floating-input'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
-import { supabase } from '@/utils/supabase/server'
 import { Party } from '@/lib/type'
 import { useDispatch } from 'react-redux'
 import { closeModal } from '@/redux/slices/modal'
 import { v4 as uuidv4 } from 'uuid'
+import { toast } from 'sonner'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { createParty } from '@/lib/actions'
 
 const PartModal = () => {
+  const queryClient = useQueryClient()
+
+
   const dispatch = useDispatch()
   const invoiceId = uuidv4()
-  const [gstData, setGstData] = useState<{
-    message?: string
-    data?: { lgnm?: string; pradr?: { adr?: string } }
-    flag?: boolean
-  } | null>(null)
-  console.log('🚀 ~ PartModal ~ gstData:', gstData)
-
   const [inputItem, setItemInput] = useState<Party>({
     id: invoiceId,
-    name: gstData?.data?.lgnm || '',
-    contact: '',
+    name: '',
+    contact: null,
     opening_balance: null,
+    receive_amount: 0,
+    pay_amount: 0,
     party_type: 'to_receive',
     gstIn: '',
     gst_type: null,
-    address: gstData?.data?.pradr?.adr || '',
+    address: '',
     email: '',
   })
-  console.log('🚀 ~ ItemModal ~ inputItem:', inputItem)
 
-  const insertData = async (e: React.FormEvent): Promise<void> => {
-    e.preventDefault()
-    console.log('🚀 ~ insertData ~ inputItem:', inputItem)
+  const createPartyDetails = useMutation({
+    mutationFn: createParty,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['Party']})
+      toast.success(`Successfully creating a Party`)
+    },
+    onError: (error) => {
+      toast.error(`Error creating on Party: ${error.message}`)
+    },
+  })
+
+  const insertData = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const submitType: string | undefined = (
+      (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null
+    )?.name
     try {
-      const { data, error } = await supabase
-        .from('party')
-        .insert(inputItem)
-        .select() // Insert an array of objects
-
-      if (error) {
-        console.error('Error inserting data:', error)
-        dispatch(closeModal())
+      const partyDetails = {
+        id: inputItem.id,
+        name: inputItem.name,
+        contact: inputItem.contact,
+        opening_balance: inputItem.opening_balance,
+        receive_amount:
+          inputItem.party_type === 'to_receive' ? inputItem.opening_balance : 0,
+        pay_amount:
+          inputItem.party_type === 'to_pay' ? inputItem.opening_balance : 0,
+        gstIn: inputItem.gstIn,
+        gst_type: inputItem.gst_type,
+        address: inputItem.address,
+        email: inputItem.email,
+        party_type: inputItem.party_type,
       }
-
-      console.log('🚀 ~ insertData ~ data:', data)
+      createPartyDetails.mutate(partyDetails)
     } catch (error) {
-      console.log('🚀 ~ insertData ~ error:', error)
+      if (error instanceof Error) {
+        toast.error(error.message)
+      } else {
+        toast.error('An unknown error occurred')
+      }
     }
-    dispatch(closeModal())
+    if (submitType === 'save') {
+      dispatch(closeModal())
+    } else if (submitType === 'saveandnew') {
+      setItemInput({
+        id: invoiceId,
+        name: '',
+        contact: null,
+        opening_balance: null,
+        receive_amount: 0,
+        pay_amount: 0,
+        party_type: 'to_receive',
+        gstIn: '',
+        gst_type: null,
+        address: '',
+        email: '',
+      })
+    }
   }
 
+  
   const handleInputChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -68,36 +106,16 @@ const PartModal = () => {
       return {
         ...prev,
         [name]: value,
-        name: gstData?.data?.lgnm === 'undefined' ? value : gstData?.data?.lgnm || '',
-        address: gstData?.data?.pradr?.adr === 'undefined' ? value : gstData?.data?.pradr?.adr || '',
+        // name:
+        //   gstData?.data?.lgnm === 'undefined'
+        //     ? value
+        //     : gstData?.data?.lgnm || '',
+        // address:
+        //   gstData?.data?.pradr?.adr === 'undefined'
+        //     ? value
+        //     : gstData?.data?.pradr?.adr || '',
       }
     })
-  }
-  const VerifyGSTDetails = async (gstinNumber: string) => {
-    const url = `https://sheet.gstincheck.co.in/check/66e10c9804084aefb2a2ed7345d613e4
-/${gstinNumber}`
-
-    console.log(
-      '🚀 ~ VerifyGSTDetails ~ process.env.GST_API_KEY:',
-      process.env.GST_API_KEY
-    )
-    try {
-      const response = await fetch(url, {
-        method: 'GET',
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const data = await response.json()
-      setGstData(data)
-      // Assuming  API returns JSON data
-      return data
-    } catch (error) {
-      console.error('Error fetching GST details:', error)
-      throw error // Re-throw the error for further handling
-    }
   }
 
   return (
@@ -111,27 +129,32 @@ const PartModal = () => {
             type="text"
             onChange={handleInputChange}
             name="name"
-            value={inputItem.name || gstData?.data?.lgnm}
+            value={inputItem.name}
             required
           />
           <FloatingInput
             label="Contact number"
             type="text"
             onChange={handleInputChange}
+            value={inputItem.contact ?? ''}
             name="contact"
-            required
           />
         </div>
         <div className="flex gap-4 items-center">
           <FloatingInput
             label="Opening Balance"
             type="number"
+            value={inputItem.opening_balance??''}
             onChange={handleInputChange}
             name="opening_balance"
-            required
           />
 
           <RadioGroup
+            // disabled
+            disabled={
+              inputItem.opening_balance === null ||
+              Number(inputItem.opening_balance) === 0
+            }
             required
             defaultChecked
             defaultValue="to_receive"
@@ -139,7 +162,7 @@ const PartModal = () => {
               setItemInput((prev) => {
                 return {
                   ...prev,
-                  party_type: value,
+                  party_type: value as 'to_receive' | 'to_pay' | null,
                 }
               })
             }
@@ -196,23 +219,12 @@ const PartModal = () => {
               <>
                 <FloatingInput
                   label="GSTIN"
+                  value={inputItem.gstIn}
                   required
                   type="text"
                   onChange={handleInputChange}
                   name="gstIn"
                 />
-                <Button onClick={() => VerifyGSTDetails(inputItem.gstIn)}>
-                  Verify
-                </Button>
-                <p
-                  className={`${
-                    gstData?.flag === true
-                      ? ` text-green-600 font-semibold`
-                      : `text-red-600 font-semibold`
-                  } `}
-                >
-                  {gstData && `${gstData.message},  ${gstData.data?.lgnm}`}
-                </p>
               </>
             )}
         </div>
@@ -225,7 +237,6 @@ const PartModal = () => {
 
         <div className="flex  gap-4 items-center ">
           <FloatingInput
-            required
             label="Email"
             type="email"
             value={inputItem.email}
@@ -234,20 +245,21 @@ const PartModal = () => {
           />
           <FloatingInput
             className="w-full"
-            required
             label="Billing Address"
             type="text"
-            value={inputItem.address || gstData?.data?.pradr?.adr}
+            value={inputItem.address}
             onChange={handleInputChange}
             name="address"
           />
         </div>
 
         <div className="border-t pt-4 gap-5 flex justify-end items-end ">
-          <Button className="" variant={'secondary'}>
+          <Button className="" variant={'secondary'} name="saveandnew">
             Save & New
           </Button>
-          <Button type="submit">Save</Button>
+          <Button type="submit" name="save">
+            Save
+          </Button>
         </div>
       </form>
     </div>

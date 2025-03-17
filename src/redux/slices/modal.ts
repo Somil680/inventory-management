@@ -1,18 +1,33 @@
 // import { getData } from '@/services/requests.services'
+import BankAccount from '@/app/(site)/cash&bank/bank_account/page'
+import { Party, Product } from '@/lib/type'
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
-export type ModalType = null | 'Items' | 'Party'| unknown
+export type ModalType =
+  | null
+  | 'Items'
+  | 'Party'
+  | 'AdjustItems'
+  | 'PaymentIn'
+  | 'PaymentOut'
+  | 'BankAccount'
+  | 'BankAccountTransaction'
+  | 'Expense'
+  | unknown
 
 interface ModalState {
   activeModal: ModalType
-  data: unknown
+  data: BankAccount[]
+  editData: Product | Party | [] |null
   onModalClose?: (() => void) | null
   getData?: () => Promise<void> | null
   types?: string
   index?: string
 }
+
 const initialState: ModalState = {
   activeModal: null,
-  data: null,
+  data: [],
+  editData :null
 }
 const modalSlice = createSlice({
   name: 'modal',
@@ -23,7 +38,8 @@ const modalSlice = createSlice({
       action: PayloadAction<{
         type: ModalType
         onModalClose?: () => void
-        data?: unknown
+        data?: BankAccount[]
+        editData?: Product | Party | []
         types?: string
         index?: string
         getData?: () => Promise<void>
@@ -31,7 +47,8 @@ const modalSlice = createSlice({
     ) {
       state.activeModal = action.payload.type
       state.onModalClose = action.payload.onModalClose
-      state.data = action.payload.data
+      state.data = action.payload.data ?? []
+      state.editData = action.payload.editData ?? null
       state.types = action.payload.types
       state.index = action.payload.index
       state.getData = action.payload.getData

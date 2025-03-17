@@ -17,7 +17,7 @@ export const fetchItems = createAsyncThunk<Product[], void, { rejectValue: strin
   'items/fetchItems',
   async (_, { rejectWithValue }) => {
     try {
-      const { data, error } = await supabase.from('product').select('*')
+      const { data, error } = await supabase.from('product').select('*,category(*),sub_category(*)')
       if (error) {
         return rejectWithValue(error.message)
       }

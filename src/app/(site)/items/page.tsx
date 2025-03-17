@@ -2,405 +2,413 @@
 import { Button } from '@/components/ui/button'
 import FloatingInput from '@/components/ui/floating-input'
 import { openModal } from '@/redux/slices/modal'
-import { Plus, SlidersVertical } from 'lucide-react'
-import React, { ChangeEvent, useEffect, useState } from 'react'
+import {
+  
+  LoaderCircle,
+  Plus,
+  SlidersVertical,
+  X,
+} from 'lucide-react'
+import React, { ChangeEvent, Suspense, useEffect, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import {
   Table,
   TableBody,
   TableCaption,
   TableCell,
-  // TableFooter,
   TableHead,
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { supabase } from '@/utils/supabase/server'
 import { Product } from '@/lib/type'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { setupItemRealtime } from '@/redux/slices/ItemData'
-import { formatDate } from '@/hooks/hook'
-interface SaleProduct {
-  id: string
-  invoice_id: string
-  product_id: string
-  qty: number
-  rate: number
-  price_per_unit: number
-  amount: number
-  description: string | null
-}
+import { formatCurrencyINR, formatDate } from '@/hooks/hook'
+import { AppDispatch } from '@/redux/store'
+import CategorySubcategorySelect from '@/components/categorySelect'
+import { queryOptions, useQuery } from '@tanstack/react-query'
+import { fetchProduct } from '@/lib/productAction'
+import { fetchInvoiceProductBasedProduct } from '@/lib/invoiceProductAction'
+import ActionButton from '@/components/ActionButton'
 
-interface Invoice {
-  id: string
-  customer_type: 'cash' | 'credit'
-  customer_name: string | null
-  // ... other invoice properties
-  invoice_no: number | null
-  invoice_date: Date
-  discount_on_amount: number
-  bill_amount: number | null
-  payment_type: 'cash' | 'online_payment'
-}
-
-interface TransactionData extends SaleProduct {
-  invoice: Invoice // Add invoice data here
-}
 const Items = () => {
-  const [productData, setProductData] = useState<Product[]>([])
-  const [subCategoryData, setSubCategoryData] = useState<any[]>([])
-  const [categoryData, setCategoryData] = useState<any[]>([])
-  // const [categoryid, setCategoryid] = useState<string>('')
-  // console.log('🚀 ~ Items ~ productData:', productData)
-  const [selectProduct, setSelectProduct] = useState<Product[]>()
-  const [filterProduct, setFilterProduct] = useState<any>('')
-  // console.log('🚀 ~ Items ~ filterProduct:', filterProduct)
+  const dispatch = useDispatch<AppDispatch>()
+  const { data, isLoading } = useQuery({
+    queryKey: ['Product'],
+    queryFn: fetchProduct,
+  })
 
-  const fetchAllFromTable = async () => {
+  function groupOptions(id: string) {
+    return queryOptions({
+      queryKey: ['Invoice_Product', id],
+      queryFn: () => fetchInvoiceProductBasedProduct(id),
+      staleTime: 5 * 1000,
+    })
+  }
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
-    try {
-      const { data: productData, error: productError } = await supabase
-        .from('product')
-        .select('*')
-      
-      const { data: subCategoryData, error: subCategoryError } = await supabase
-        .from('sub_category')
-        .select('*')
-      const { data: categoryData, error: categoryError } = await supabase
-        .from('category')
-        .select('*')
+  const { data: invoiceProductData } = useQuery({
+    ...groupOptions(selectedId ?? ''),
+    enabled: !!selectedId,
+  })
 
-      if (productError) {
-        throw productError // Throw the error to be caught by the try...catch block
-      }
-      if (subCategoryError) {
-        throw subCategoryError
-      }
-      if (categoryError) {
-        throw categoryError
-      }
-      setProductData(productData)
-      setSubCategoryData(subCategoryData)
-      setCategoryData(categoryData)
-      return { productData, subCategoryData, categoryData }
-    } catch (err) {
-      console.error('Error fetching data:', err)
-      //  setError(err.message || 'An error occurred while fetching data.') // Set error message
-      return null // Return null in case of error
-    } finally {
-      //  setLoading(false) // Set loading to false regardless of success or failure
+  const TotalQuantity = () => {
+    const total = {
+      qty: 0,
+      purchase: 0,
+      sale: 0,
+      stockValue: 0,
     }
+    if (!data) return total
+    data.forEach((item) => {
+      total.qty += item.opening_quantity ?? 0
+    })
+    data.forEach((item) => {
+      total.sale += item.sale_price ?? 0
+    })
+    data.forEach((item) => {
+      total.purchase += item.purchase_price ?? 0
+    })
+    total.stockValue = total.qty * total.sale
+    return total
   }
 
-  // async function insertIntoTable() {
-  //   const { data, error } = await supabase
-  //     .from('products')
-  //     .insert([{ id: '323' }]) // Insert an array of objects
+  const [selectProduct, setSelectProduct] = useState<Product[]>()
+  const [inputItem, setItemInput] = useState<Product>({
+    id: '',
+    name: '',
+    hsn: '',
+    unit: '',
+    category: '',
+    sub_category: '',
+    opening_quantity: 0,
+    purchase_price: 0,
+    sale_price: 0,
+    taxs: 0,
+    location: '',
+  })
+  const [filterProduct, setFilterProduct] = useState('')
+  const [filterTransaction, setFilterTransaction] = useState('')
 
-  //   if (error) {
-  //     console.error('Error inserting data:', error)
-  //     return null
-  //   }
-
-  //   return data
-  // }
-  const [transaction , setTransaction ]  = useState<any[]>([])
-  console.log("🚀 ~ Items ~ transaction:", transaction)
- const getTransactionData = async (id: string): Promise<TransactionData[]> => {
-   try {
-     const { data, error } = await supabase
-       .from('sale_product')
-       .select(`*,invoices (*)`)
-       .eq('product_id', id)
-     if (error) {
-       throw error
-     }
-     if (data) {
-       // Flatten the data structure
-       const transactionData: TransactionData[] = data.map((saleProduct) => ({
-         ...saleProduct,
-         ...saleProduct.invoices[0], // Access the first (and only) invoice
-       }))
-        setTransaction(transactionData)
-       return transactionData
-     }
-
-     return []
-   } catch (error) {
-     console.error('Error fetching transaction data:', error)
-     return []
-   }
- }
-
-
-  const dispatch = useDispatch()
-  const open = () => {
-    dispatch(
-      openModal({
-        type: 'Items',
-      })
-    )
-    console.log('🚀 ~ open ~ open:')
+  const open = (types: string, id: string) => {
+    if (types === 'AdjustItems') {
+      dispatch(
+        openModal({
+          type: types,
+          index: id,
+        })
+      )
+    } else {
+      dispatch(
+        openModal({
+          type: types,
+        })
+      )
+    }
   }
   useEffect(() => {
-    fetchAllFromTable() // Fetch initial data
-
-    const unsubscribe = setupItemRealtime(dispatch) // Set up real-time listener
-
-    return () => {
-      unsubscribe() // Unsubscribe when the component unmounts
-    }
-  }, [dispatch])
+    if (!data) return
+    setSelectProduct([
+      {
+        ...data[0],
+        hsn: data[0].hsn ?? '',
+        unit: data[0].unit ?? '',
+        category: data[0].category ?? '',
+        sub_category: data[0].sub_category ?? '',
+        location: data[0].location ?? '',
+        sale_price: data[0].sale_price ?? 0,
+        purchase_price: data[0].purchase_price ?? 0,
+        opening_quantity: data[0].opening_quantity ?? 0,
+        taxs: data[0].taxs ?? 0,
+      },
+    ])
+    setSelectedId(data[0].id)
+  }, [isLoading])
 
   return (
     <main className="w-full flex gap-3 h-full ">
-      <section className="bg-white shadow-lg w-2/4 my-3 ml-3 p-3 space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <FloatingInput
-            label="Search"
-            className="w-full"
-            type="text"
-            value={filterProduct}
-            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              setFilterProduct(e.target.value)
-            }
-          />
-          <Button onClick={() => open()}>
-            <Plus /> Add Item
-          </Button>
-        </div>
-        <div className="flex items-center gap-2">
-          <p className="font-semibold">Filter :</p>
-          <Select onValueChange={(value) => setFilterProduct(value)}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Category" />
-            </SelectTrigger>
-            <SelectContent>
-              {categoryData.map((item) => (
-                <>
-                  <SelectItem key={item.id} value={item.value}>
-                    {item.title}
-                  </SelectItem>
-                </>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select onValueChange={(value) => setFilterProduct(value)}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Subcategory" />
-            </SelectTrigger>
-            <SelectContent>
-              {subCategoryData.map((item) => (
-                <>
-                  <SelectItem key={item.id} value={item.title}>
-                    {item.title}
-                  </SelectItem>
-                </>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      {!isLoading ? (
+        <>
+          <section className="bg-white shadow-lg  w-2/5 my-3 ml-3 p-3 space-y-3 ">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-2">
+                <FloatingInput
+                  label="Search Products...."
+                  className="w-full"
+                  removeText={() => setFilterProduct('')}
+                  type="text"
+                  value={filterProduct}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setFilterProduct(e.target.value)
+                  }
+                />
+                <Button onClick={() => open('Items', '')}>
+                  <Plus /> Add Item
+                </Button>
+              </div>
+              <div className="flex flex-col   gap-1">
+                <p className="font-semibold">Filter Products By Category :</p>
+                <div className="flex gap-2 items-center">
+                  <CategorySubcategorySelect
+                    inputItem={inputItem}
+                    setItemInput={setItemInput}
+                  />
+                  {inputItem.category !== '' && (
+                    <X
+                      className="text-gray-500 bg-gray-300 p-1 rounded-full"
+                      onClick={() =>
+                        setItemInput({
+                          ...inputItem,
+                          category: '',
+                          sub_category: '',
+                        })
+                      }
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="overflow-y-auto whitespace-nowrap">
+              <Table className="h-full">
+                <TableCaption>A list of your Products.</TableCaption>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[100px]">Item</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead className="text-right">Quantity</TableHead>
+                    <TableHead className="text-right"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className=" ">
+                  {data &&
+                    data
+                      .filter(
+                        (item) =>
+                          item.name
+                            .toLowerCase()
+                            .includes(filterProduct?.toLowerCase()) &&
+                          item?.category &&
+                          item?.category
+                            .toLowerCase()
+                            .includes(inputItem.category?.toLowerCase()) &&
+                          item?.sub_category &&
+                          item?.sub_category
+                            .toLowerCase()
+                            .includes(inputItem.sub_category?.toLowerCase())
+                      )
+                      .map((item) => (
+                        <Suspense fallback={'...Loading'} key={item.id}>
+                          <TableRow
+                            className=""
+                            key={item.id}
+                            onClick={() => {
+                              setSelectedId(item.id)
+                              setSelectProduct([
+                                {
+                                  ...item,
+                                  hsn: item.hsn ?? '',
+                                  unit: item.unit ?? '',
+                                  category: item.category ?? '',
+                                  sub_category: item.sub_category ?? '',
+                                  location: item.location ?? '',
+                                  sale_price: item.sale_price ?? 0,
+                                  purchase_price: item.purchase_price ?? 0,
+                                  opening_quantity: item.opening_quantity ?? 0,
+                                  taxs: item.taxs ?? 0,
+                                },
+                              ])
+                            }}
+                          >
+                            <TableCell className="font-semibold">
+                              {item.name.toUpperCase()}
+                            </TableCell>
+                            <TableCell className="flex gap-2">
+                              <span className="bg-neutral-100  text-gray-700 rounded-full px-2">
+                                {item.category_product &&
+                                  item.category_product.title}
+                              </span>
+                              <span className="bg-neutral-100 text-gray-700 rounded-full px-2">
+                                {item.sub_category_product &&
+                                  item.sub_category_product.title}
+                              </span>
+                            </TableCell>
+                            <TableCell
+                              className={`text-right  font-semibold ${
+                                (item.opening_quantity ?? 0) > 10
+                                  ? 'text-green-600'
+                                  : 'text-red-600'
+                              }`}
+                            >
+                              {item.opening_quantity}
+                            </TableCell>
+                            <TableCell className="text-right w-5">
+                              <ActionButton  type={'Items'} editData={item}/>
+                             
+                            </TableCell>
+                          </TableRow>
+                        </Suspense>
+                      ))}
+                </TableBody>
+              </Table>
+            </div>
+          </section>
+          <section className=" w-3/5 my-3 mr-3 flex flex-col gap-3">
+            {/* ITEM DETAILS-------------------------------------------------------------------------------------------------- */}
 
-        <div>
-          <Table>
-            <TableCaption>A list of your recent invoices.</TableCaption>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[100px]">Item</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead className="text-right">Quantity</TableHead>
-                <TableHead className="text-right"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {productData
-                .filter(
-                  (item) =>
-                    item.name
-                      .toLowerCase()
-                      .includes(filterProduct.toLowerCase()) ||
-                    item.category
-                      .toLowerCase()
-                      .includes(filterProduct.toLowerCase()) ||
-                    item.sub_category
-                      .toLowerCase()
-                      .includes(filterProduct.toLowerCase())
-                )
-                .map((item) => (
-                  <TableRow
-                    key={item?.id}
-                    onClick={() => {
-                      setSelectProduct([item])
-                      getTransactionData(item?.id)
-                    }}
+            <div className=" bg-white shadow-lg h-1/5 w-full p-3 ">
+              <div className="flex justify-between">
+                <p className="text-lg font-semibold">
+                  {selectProduct
+                    ? selectProduct?.map((item) => item?.name.toUpperCase())
+                    : 'Select Product / Total Product Details'}
+                </p>
+                {selectProduct && (
+                  <Button
+                    onClick={() => open('AdjustItems', selectProduct[0].id)}
                   >
-                    <TableCell className="font-medium">{item?.name}</TableCell>
-                    <TableCell className="flex items-center gap-2">
-                      <span className="bg-gray-50 p-2 rounded-lg">
-                        {item?.category}
-                      </span>
-                      <span className="bg-gray-50 p-2 rounded-lg">
-                        {item?.sub_category}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {item.opening_quantity}
-                    </TableCell>
-                    <TableCell className="text-right">=</TableCell>
-                  </TableRow>
-                ))}
-            </TableBody>
-            {/* <TableFooter>
-              <TableRow>
-                <TableCell colSpan={3}>Total</TableCell>
-                <TableCell className="text-right">$2,500.00</TableCell>
-              </TableRow>
-            </TableFooter> */}
-          </Table>
-        </div>
-      </section>
-      <section className=" w-2/4 my-3 mr-3 flex flex-col gap-3">
-        {/* ITEM DETAILS-------------------------------------------------------------------------------------------------- */}
+                    <SlidersVertical />
+                    Adjust Item
+                  </Button>
+                )}
+              </div>
+              <div className="flex justify-between  items-center">
+                <div className="space-y-6">
+                  <p className="text-base font-semibold text-gray-400">
+                    SALE PRICE:{' '}
+                    <span className="text-green-600">
+                      {selectProduct
+                        ? selectProduct?.map((item) =>
+                            formatCurrencyINR(item?.sale_price ?? 0)
+                          )
+                        : formatCurrencyINR(TotalQuantity().sale)}
+                    </span>
+                  </p>
+                  <p className="text-base font-semibold text-gray-400">
+                    PURCHASE PRICE:{' '}
+                    <span className="text-green-600">
+                      {selectProduct
+                        ? selectProduct?.map((item) =>
+                            formatCurrencyINR(item?.purchase_price ?? 0)
+                          )
+                        : formatCurrencyINR(TotalQuantity().purchase)}{' '}
+                    </span>
+                  </p>
+                </div>
+                <div className="space-y-6">
+                  <p className="text-base font-semibold text-gray-400">
+                    STOCK QUANTITY:{' '}
+                    <span className="text-green-600">
+                      {selectProduct
+                        ? selectProduct?.map((item) =>
+                            formatCurrencyINR(item?.opening_quantity ?? 0)
+                          )
+                        : formatCurrencyINR(TotalQuantity().qty)}{' '}
+                    </span>
+                  </p>
+                  <p className="text-base font-semibold text-gray-400">
+                    STOCK VALUE:{' '}
+                    <span className="text-green-600">
+                      {selectProduct
+                        ? selectProduct?.map((item, index) => {
+                            const openingQuantity =
+                              typeof item?.opening_quantity === 'number'
+                                ? item.opening_quantity
+                                : 0
+                            const salePriceValue =
+                              typeof item.sale_price === 'number'
+                                ? item?.sale_price
+                                : 0
 
-        <div className=" bg-white shadow-lg h-1/5 w-full p-3 ">
-          <div className="flex justify-between">
-            <p className="text-lg font-semibold">
-              {selectProduct
-                ? selectProduct?.map((item) => item?.name)
-                : 'Select Product'}
-            </p>
-            <Button onClick={() => fetchAllFromTable()}>
-              <SlidersVertical />
-              Adjust Item
-            </Button>
-          </div>
-          <div className="flex justify-between space-y-6 items-center">
-            <div className="space-y-4">
-              <p className="text-sm font-semibold text-gray-400">
-                SALE PRICE:{' '}
-                <span className="text-green-600">
-                  {' '}
-                  &#8377;:
-                  {selectProduct
-                    ? selectProduct?.map((item) => item?.sale_price)
-                    : 'null'}
-                </span>
-              </p>
-              <p className="text-sm font-semibold text-gray-400">
-                PURCHASE PRICE:{' '}
-                <span className="text-green-600">
-                  {' '}
-                  &#8377;:
-                  {selectProduct
-                    ? selectProduct?.map((item) => item?.purchase_price)
-                    : 'null'}{' '}
-                </span>
-              </p>
+                            return (
+                              <span key={index}>
+                                {formatCurrencyINR(
+                                  openingQuantity * salePriceValue
+                                )}
+                              </span>
+                            )
+                          })
+                        : formatCurrencyINR(TotalQuantity().stockValue)}
+                    </span>
+                  </p>
+                </div>
+              </div>
             </div>
-            <div className="space-y-4">
-              <p className="text-sm font-semibold text-gray-400">
-                STOCK QUANTITY:{' '}
-                <span className="text-green-600">
-                  {' '}
-                  &#8377;:
-                  {selectProduct
-                    ? selectProduct?.map((item) => item?.opening_quantity)
-                    : 'null'}{' '}
-                </span>
-              </p>
-              <p className="text-sm font-semibold text-gray-400">
-                STOCK VALUE:{' '}
-                <span className="text-green-600">
-                  {' '}
-                  &#8377;:
-                  {selectProduct
-                    ? selectProduct?.map((item, index) => {
-                        const openingQuantity =
-                          typeof item?.opening_quantity === 'number'
-                            ? item.opening_quantity
-                            : 0
-                        const salePriceValue =
-                          typeof item.sale_price === 'number'
-                            ? item?.sale_price
-                            : 0
 
-                        return (
-                          <span key={index}>
-                            {openingQuantity * salePriceValue}
-                          </span>
-                        )
-                      })
-                    : 'null'}
-                </span>
-              </p>
+            {/* TABLE INFORMATION---------------------------------------------------------------------------------------------- */}
+            <div className=" bg-white shadow-lg p-3 h-full space-y-2">
+              <div className="flex justify-between">
+                <p className="text-lg font-semibold">TRANSACTION</p>
+                <FloatingInput
+                  label="Search by Name | Type"
+                  type="text"
+                  value={filterTransaction}
+                  removeText={() => setFilterTransaction('')}
+                  onChange={(e) => setFilterTransaction(e.target.value)}
+                />
+              </div>
+              <div className=" overflow-y-scroll h-[67dvh]">
+                <Table>
+                  {/* <TableCaption>
+                {transaction.length > 0
+                  ? ' A list of your recent invoices.'
+                  : 'Select Product to see invoices '}
+              </TableCaption> */}
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[20px]">Sl.no</TableHead>
+                      <TableHead className="">Type</TableHead>
+                      <TableHead className="w-24">Invoice no.</TableHead>
+                      <TableHead className="w-24">Date</TableHead>
+                      <TableHead className="w-24">Shade no.</TableHead>
+                      <TableHead className="w-24">Quantity</TableHead>
+                      <TableHead className="text-right w-24">
+                        Price/Unit
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <>
+                      {invoiceProductData &&
+                        invoiceProductData
+                          .filter((item) =>
+                            item?.invoice?.invoice_type
+                              ?.toLowerCase()
+                              .includes(filterTransaction.toLowerCase())
+                          )
+                          .map((item, index) => (
+                              <TableRow key={item.id}>
+                                <TableCell className="">{index + 1}</TableCell>
+                                <TableCell className="">
+                                  {item.invoice?.invoice_type?.toLocaleUpperCase()}
+                                </TableCell>
+                                <TableCell className="">
+                                  {item.invoice?.invoice_no}
+                                </TableCell>
+
+                                <TableCell className="w-24">
+                                  {formatDate(item.invoice?.invoice_date)}
+                                </TableCell>
+                                <TableCell className="w-24">
+                                  {item?.description}
+                                </TableCell>
+                                <TableCell className="">{item.qty}</TableCell>
+                                <TableCell className="text-right text-green-600 w-24">
+                                  {formatCurrencyINR(item.price_per_unit)}
+                                </TableCell>
+                              </TableRow>
+                          ))}
+                    </>
+                  </TableBody>
+                </Table>
+              </div>
             </div>
+          </section>
+        </>
+      ) : (
+        <>
+          <div className="bg-muted w-full h-full  flex items-center justify-center">
+            <LoaderCircle className="animate-spin" color="blue" />
           </div>
-        </div>
-
-        {/* TABLE INFORMATION---------------------------------------------------------------------------------------------- */}
-        <div className=" bg-white shadow-lg p-3 h-4/5">
-          <div className="flex justify-between">
-            <p className="text-lg font-semibold">TRANSACTION</p>
-            <FloatingInput label="Search" type="text" />
-          </div>
-          <div>
-            <Table>
-              <TableCaption>A list of your recent invoices.</TableCaption>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[100px]">Sl.no</TableHead>
-                  <TableHead className="w-[100px]">Type</TableHead>
-                  <TableHead className="w-[100px]">Invoice no.</TableHead>
-                  <TableHead className="text-right">Name</TableHead>
-                  <TableHead className="text-right">Date</TableHead>
-                  <TableHead className="text-right">Quantity</TableHead>
-                  <TableHead className="text-right">Price/Unit</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {transaction.map((item, index) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="w-[100px]">{index + 1}</TableCell>
-                    <TableCell className="w-[100px]">{item.invoices.invoice_type }</TableCell>
-                    <TableCell className="w-[100px]">
-                      {item.invoices.invoice_no}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {item.invoices.customer_name}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatDate(item.invoices.invoice_date)}
-                    </TableCell>
-                    <TableCell className="text-right">{item.qty}</TableCell>
-                    <TableCell className="text-right">
-                      {item.price_per_unit}
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {/* <TableCell className="w-[100px]">Sale</TableCell>
-                <TableCell className="w-[100px]">2.</TableCell>
-                <TableCell className="text-right">OM</TableCell>
-                <TableCell className="text-right">12/12/12</TableCell>
-                <TableCell className="text-right">100</TableCell>
-                <TableCell className="text-right">123.32</TableCell>
-                <TableCell className="text-right">Active</TableCell> */}
-              </TableBody>
-              {/* <TableFooter>
-              <TableRow>
-                <TableCell colSpan={3}>Total</TableCell>
-                <TableCell className="text-right">$2,500.00</TableCell>
-              </TableRow>
-            </TableFooter> */}
-            </Table>
-          </div>
-        </div>
-      </section>
+        </>
+      )}
     </main>
   )
 }
