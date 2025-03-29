@@ -36,8 +36,8 @@ model product {
   location             String?
   created_at           DateTime?         @default(now()) @db.Timestamptz(6)
   updated_at           DateTime?         @default(now()) @db.Timestamptz(6)
-  sale_price           Int?
-  purchase_price       Int?
+  sale_price           BigInt?
+  purchase_price       BigInt?
   category             String?           @db.Uuid
   sub_category         String?           @db.Uuid
   taxs                 Int?
@@ -49,13 +49,17 @@ model product {
 model invoice {
   id                 String            @id(map: "invoices_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   invoice_no         String?
-  invoice_date       DateTime?         @db.Timestamp(6)
+  invoice_date       DateTime?         @db.Date
   invoice_type       invoice_type?
   billing_name       String?
   party_id           String?           @db.Uuid
-  discount_on_amount Int?              @default(0)
-  bill_amount        Int?
+  discount_on_amount BigInt?           @default(0)
+  bill_amount        BigInt?           @default(0)
   payment_type       String?           @db.Uuid
+  created_at         DateTime?         @default(now()) @db.Timestamp(6)
+  updated_at         DateTime?         @default(now()) @db.Timestamp(6)
+  paid_amount        BigInt?           @default(0)
+  remaining_amount   BigInt?           @default(0)
   party              party?            @relation(fields: [party_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "invoices_party_id_fkey")
   payment            payment?          @relation(fields: [payment_type], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "invoices_payment_id_fkey")
   invoice_product    invoice_product[]
@@ -63,16 +67,18 @@ model invoice {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model invoice_product {
-  id             String  @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  invoice_id     String  @db.Uuid
-  product_id     String  @db.Uuid
+  id             String    @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  invoice_id     String    @db.Uuid
+  product_id     String    @db.Uuid
   qty            Int
-  rate           Int
-  price_per_unit Int
-  amount         Int
+  rate           BigInt
+  price_per_unit BigInt
+  amount         BigInt
   description    String?
-  invoice        invoice @relation(fields: [invoice_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  product        product @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  created_at     DateTime? @default(now()) @db.Timestamp(6)
+  updated_at     DateTime? @default(now()) @db.Timestamp(6)
+  invoice        invoice   @relation(fields: [invoice_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  product        product   @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@id([id, invoice_id])
   @@unique([invoice_id, product_id], map: "invoice_product_unique_combination")
@@ -88,8 +94,8 @@ model party {
   email          String?
   created_at     DateTime?     @default(now()) @db.Timestamptz(6)
   updated_at     DateTime?     @default(now()) @db.Timestamptz(6)
-  pay_amount     Int?
-  receive_amount Int?
+  pay_amount     BigInt?
+  receive_amount BigInt?
   isActive       Boolean?      @default(true)
   invoice        invoice[]
 }
@@ -101,7 +107,7 @@ model payment {
   account_holder_name                                     String?
   account_name                                            String?
   account_number                                          Int?
-  balance                                                 Int?
+  balance                                                 BigInt?
   update_at                                               DateTime           @default(now()) @db.Timestamptz(6)
   upi_number                                              String?
   bank_transaction_bank_transaction_from_bank_idTopayment bank_transaction[] @relation("bank_transaction_from_bank_idTopayment")
@@ -114,10 +120,12 @@ model bank_transaction {
   id                                             String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   description                                    String?
   date                                           DateTime?             @db.Date
-  balance                                        Decimal?              @db.Decimal
+  balance                                        BigInt?
   from_bank_id                                   String?               @db.Uuid
   to_bank_id                                     String?               @db.Uuid
   transaction_type                               bankTransaction_type?
+  created_at                                     DateTime?             @default(now()) @db.Timestamptz(6)
+  updated_at                                     DateTime?             @default(now()) @db.Timestamptz(6)
   payment_bank_transaction_from_bank_idTopayment payment?              @relation("bank_transaction_from_bank_idTopayment", fields: [from_bank_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bank_from_fkey")
   payment                                        payment?              @relation(fields: [to_bank_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "banktransaction_From_To_fkey")
 }
@@ -125,10 +133,12 @@ model bank_transaction {
 model expenses {
   id                String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   expense_category  String?            @db.Uuid
-  bill_amount       Int?
+  bill_amount       BigInt?
   item              String?
   expense_date      DateTime?          @db.Date
   payment_type      String?            @db.Uuid
+  created_at        DateTime?          @default(now()) @db.Timestamp(6)
+  updated_at        DateTime?          @default(now()) @db.Timestamp(6)
   expenses_category expenses_category? @relation("expenses_expense_categoryToexpense_category", fields: [expense_category], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "expense_category_fkey")
   payment           payment?           @relation(fields: [payment_type], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
@@ -136,7 +146,8 @@ model expenses {
 model expenses_category {
   id               String     @id(map: "expense_category_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   title            String?
-  expense_balance  Decimal?   @db.Decimal
+  expense_balance  BigInt?
+  created_at       DateTime?  @default(now()) @db.Timestamptz(6)
   expense_category expenses[] @relation("expenses_expense_categoryToexpense_category")
 }
 

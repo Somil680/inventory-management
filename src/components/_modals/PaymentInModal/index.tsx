@@ -36,10 +36,12 @@ const PaymentIn = () => {
     invoice_date: new Date(),
     invoice_type: 'payment_in',
     party_id: '',
-    bill_amount: null,
+    bill_amount: 0,
     payment_type: '',
     discount_on_amount: 0,
     billing_name: '',
+    remaining_amount: 0,
+    paid_amount:0,
   })
 
   const handleInputChange = (

@@ -1,5 +1,6 @@
 'use server'
 
+import { formatPrice } from '@/hooks/hook'
 import prisma from './prisma'
 
 interface InvoiceProducts {
@@ -16,7 +17,17 @@ interface InvoiceProducts {
 // * THIS WILL FETCH A INVOICE PRODUCT
 export async function fetchInvoiceProduct() {
   try {
-    return await prisma.invoice_product.findMany()
+    const invoiceProduct = await prisma.invoice_product.findMany({
+      orderBy: {created_at: 'desc'},
+    })
+    return (
+      invoiceProduct.map((item) => ({
+        ...item,
+        rate: formatPrice(item.rate ?? 0),
+        price_per_unit: formatPrice(item.price_per_unit ?? 0),
+        amount: formatPrice(item.amount ?? 0),
+      })) ?? []
+    )
   } catch (error) {
     console.log('🚀 ~ fetchInvoiceProduct ~ error:', error)
     throw new Error('Failed to fetchInvoiceProduct')
@@ -24,7 +35,7 @@ export async function fetchInvoiceProduct() {
 }
 // * THIS WILL FETCH A INVOICE PRODUCT BASED ON THE PRODUCT ID
 export async function fetchInvoiceProductBasedProduct(id: string) {
-  console.log("🚀 ~ fetchInvoiceProductBasedProduct ~ id:", id)
+  console.log('🚀 ~ fetchInvoiceProductBasedProduct ~ id:', id)
   try {
     const invoiceProducts = await prisma.invoice_product.findMany({
       where: { product_id: { equals: id } },
@@ -40,27 +51,43 @@ export async function fetchInvoiceProductBasedProduct(id: string) {
         invoice: true,
         product: true,
       },
+      orderBy: { created_at: 'desc' },
     })
-    console.log("🚀 ~ fetchInvoiceProductBasedProduct ~ invoiceProducts:", invoiceProducts)
-
-    // Return an empty array if no invoice products are found
-    return invoiceProducts || [] 
+    return (
+      invoiceProducts.map((item) => ({
+        ...item,
+        rate: formatPrice(item.rate ?? 0),
+        price_per_unit: formatPrice(item.price_per_unit ?? 0),
+        amount: formatPrice(item.amount ?? 0),
+      })) ?? []
+    )
   } catch (error) {
     console.log('🚀 ~ fetchInvoiceProductBasedProduct ~ error:', error)
     throw new Error('Failed to fetchInvoiceProductBasedProduct')
   }
 }
 // * THIS WILL CREATE A INVOICE PRODUCT
-export async function createInvoiceProduct(inputItem: InvoiceProducts[]) {
+export async function createInvoiceProduct(inputItem: InvoiceProducts) {
+  console.log("🚀 ~ createInvoiceProduct ~ inputItem:", inputItem)
   if (!inputItem || typeof inputItem !== 'object') {
     throw new Error('Invalid input: Product data is required')
   }
   try {
-    const dataArray = Array.isArray(inputItem) ? inputItem : [inputItem] // Ensure data is always an array
-
-    console.log('🚀 ~ fetchInvoiceProduct ~ inputItem:', inputItem)
-    return await prisma.invoice_product.createMany({
-      data: dataArray,
+    return await prisma.invoice_product.create({
+      data: {
+        invoice_id: inputItem.invoice_id,
+        product_id: inputItem.product_id,
+        description: inputItem.description,
+        qty: inputItem.qty,
+        // rate: 0,
+        // price_per_unit: 0,
+        // amount: 0,
+        rate: BigInt(Math.round(Number(inputItem.rate ?? 0) * 100)),
+        price_per_unit: BigInt(
+          Math.round(Number(inputItem.price_per_unit ?? 0) * 100)
+        ),
+        amount: BigInt(Math.round(Number(inputItem.amount ?? 0) * 100)),
+      },
     })
   } catch (error) {
     console.error('🚀 ~ CREATEInvoiceProduct ~ error:', error)
@@ -80,9 +107,11 @@ export async function updateInvoiceProduct(
         product_id: inputItem.product_id,
         description: inputItem.description,
         qty: inputItem.qty,
-        rate: inputItem.rate,
-        price_per_unit: inputItem.price_per_unit,
-        amount: inputItem.amount,
+        rate: BigInt(Math.round(Number(inputItem.rate ?? 0) * 100)),
+        price_per_unit: BigInt(
+          Math.round(Number(inputItem.price_per_unit ?? 0) * 100)
+        ),
+        amount: BigInt(Math.round(Number(inputItem.amount ?? 0) * 100)),
       },
     })
   } catch (error) {

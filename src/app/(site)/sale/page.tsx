@@ -11,7 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { formatDate, formatCurrencyINR } from '@/hooks/hook'
-import { fetchInvoices, fetchInvoicesOnType } from '@/lib/invoiceAction'
+import {  fetchInvoicesOnType } from '@/lib/invoiceAction'
 import { useQuery } from '@tanstack/react-query'
 import { Equal, Plus } from 'lucide-react'
 import React, { useState } from 'react'
@@ -26,50 +26,36 @@ const Page = () => {
   })
   console.log('🚀 ~ Page ~ selectedDates:', selectedDates)
 
-  const { data: allInvoice } = useQuery({
-    queryKey: ['Invoice'],
-    queryFn: fetchInvoices,
-  })
+  // const { data: allInvoice } = useQuery({
+  //   queryKey: ['Invoice'],
+  //   queryFn: fetchInvoices,
+  // })
 
   const { data: invoice } = useQuery({
     queryKey: ['Invoice', selectedDates.date1, selectedDates.date2],
     queryFn: () =>
       fetchInvoicesOnType(selectedDates.date1, selectedDates.date2),
     enabled: !!selectedDates.date1 && !!selectedDates.date2,
-  })
-
-  console.log(
-    '🚀 ~ Page ~ data:',
-    invoice,
-    invoice &&
-      invoice.filter(
+    select: (data) =>
+      data?.filter(
         (item) =>
           item?.invoice_type?.toLowerCase().includes('cash') ||
           item?.invoice_type?.toLowerCase().includes('credit')
-      )
-  )
-
+      ),
+  })
   const TotalQuantity = () => {
     const total = {
       totalAmount: 0,
       totalPaid: 0,
       totalUnpaid: 0,
     }
-    // allInvoice?.forEach((item) => {
-    //   total.totalAmount += item.bill_amount ?? 0
-    // })
-    allInvoice?.filter((item) => item?.invoice_type?.toLocaleLowerCase().includes('cash'))
-      .filter((item) => item?.invoice_type?.toLocaleLowerCase().includes('cash'))
-      .forEach((item) => {
-        total.totalPaid += item.bill_amount ?? 0
-      })
-    allInvoice?.filter((item) =>
-        item.invoice_type?.toLocaleLowerCase().includes('credit')
-      )
-      .forEach((item) => {
-        total.totalUnpaid += item.bill_amount ?? 0
-      })
-     
+    invoice?.forEach((item) => {
+      total.totalPaid += Number(item.paid_amount) ?? 0
+    })
+    invoice?.forEach((item) => {
+      total.totalUnpaid += Number(item.remaining_amount) ?? 0
+    })
+    total.totalAmount = total.totalPaid + total.totalUnpaid
     return total
   }
 
@@ -83,8 +69,8 @@ const Page = () => {
     <div className="m-3 flex flex-col gap-3">
       <section className="w-full h-52 bg-white p-3 space-y-4 ">
         <div className="flex gap-2 items-center">
-          <h2 className="text-2xl font-bold text-gray-800">This month :</h2>
-          <DateRangeInput onDateChange={handleDateChange} />
+          {/* <h2 className="text-2xl font-bold text-gray-800">This month :</h2> */}
+          <DateRangeInput onDateChange={handleDateChange} /> 
         </div>
         <div className="flex items-center gap-4">
           <div>
@@ -113,7 +99,7 @@ const Page = () => {
         <div className="flex justify-between">
           <p className="text-lg font-semibold">TRANSACTION</p>
           <FloatingInput
-            label="Search"
+            label="Search by Name | Type"
             type="text"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
@@ -130,7 +116,9 @@ const Page = () => {
                 <TableHead className="w-[100px]">Type</TableHead>
                 <TableHead className="">Name.</TableHead>
                 <TableHead className="text-right">Payment Type</TableHead>
-                <TableHead className="text-right w-24">Total</TableHead>
+                <TableHead className="text-right w-24">Paid Amt.</TableHead>
+                <TableHead className="text-right w-24">Due Amt.</TableHead>
+                <TableHead className="text-right w-24">Total Amt.</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -138,11 +126,11 @@ const Page = () => {
                 invoice
                   .filter(
                     (item) =>
-                      item?.invoice_type?.toLowerCase().includes('cash') ||
-                      item?.invoice_type?.toLowerCase().includes('credit')
+                      item?.party?.name?.toLowerCase().includes(filter) ||
+                      item?.invoice_type?.toLowerCase().includes(filter)
                   )
                   .map((item, index) => (
-                    <TableRow key={item?.id} >
+                    <TableRow key={item?.id}>
                       <TableCell className="">{index + 1}</TableCell>
                       <TableCell className="w-24">
                         {formatDate(item.invoice_date)}
@@ -157,13 +145,13 @@ const Page = () => {
                       <TableCell className="text-right">
                         {item.payment?.account_name}
                       </TableCell>
-                      <TableCell
-                        className={
-                          item.invoice_type === 'purchase'
-                            ? 'text-red-600 font-semibold text-right'
-                            : 'text-green-600 font-semibold text-right'
-                        }
-                      >
+                      <TableCell className="text-green-600 font-semibold text-right">
+                        {formatCurrencyINR(item?.paid_amount ?? 0)}
+                      </TableCell>
+                      <TableCell className="text-red-600 font-semibold text-right">
+                        {formatCurrencyINR(item?.remaining_amount ?? 0)}
+                      </TableCell>
+                      <TableCell className="text-green-600 font-semibold text-right">
                         {formatCurrencyINR(item?.bill_amount ?? 0)}
                       </TableCell>
                     </TableRow>

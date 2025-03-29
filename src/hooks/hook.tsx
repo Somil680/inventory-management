@@ -54,6 +54,10 @@ export const getDateRange = (filter: string) => {
   return { startDate, endDate }
 }
 
+export function formatPrice(amount: number | bigint): string {
+  return `${Number((Number(amount) / 100).toFixed(2))}` // ₹ Convert cents to decimal
+}
+
 export const formatDates = (date: Date | number): string => {
   const dateObj = typeof date === 'number' ? new Date(date) : date
   const year = dateObj.getFullYear()
@@ -101,10 +105,16 @@ export function formatDate(
 
 export function formatCurrencyINR(amount: number | string): string {
   try {
+    // Allow empty string (useful for inputs)
+    if (amount === '') return ''
+
+    // Convert to number safely
     const num = Number(amount)
-    if (isNaN(num)) {
-      return 'Invalid Amount'
-    }
+
+    // If input contains invalid characters, return unformatted
+    if (isNaN(num)) return String(amount)
+
+    // Format only valid numbers
     return num.toLocaleString('en-IN', {
       maximumFractionDigits: 2,
       style: 'currency',
@@ -112,9 +122,27 @@ export function formatCurrencyINR(amount: number | string): string {
     })
   } catch (error) {
     console.error('Error formatting currency', error)
-    return 'Invalid Amount'
+    return String(amount) // Return the original input in case of error
   }
 }
+
+
+// export function formatCurrencyINR(amount: number | string): string {
+//   try {
+//     const num = Number(amount)
+//     if (isNaN(num)) {
+//       return 'Invalid Amount'
+//     }
+//     return num.toLocaleString('en-IN', {
+//       maximumFractionDigits: 2,
+//       style: 'currency',
+//       currency: 'INR',
+//     })
+//   } catch (error) {
+//     console.error('Error formatting currency', error)
+//     return 'Invalid Amount'
+//   }
+// }
 export function formatString(str: string): string {
   return str
     .split('_') // Split by underscore

@@ -1,7 +1,6 @@
 'use server'
 
 import prisma from './prisma'
-import { Party } from './type'
 export async function fetchProperties() {
   try {
     return await prisma.category.findMany({
@@ -84,29 +83,3 @@ export async function deleteSubCategory(id: string) {
 /** Create a new  Product
  */
 
-// ✅ FETCH A PARTY DETAILS
-
-// ✅ Create a PARTY
-export async function createParty(inputItem: Party) {
-  if (!inputItem || typeof inputItem !== 'object') {
-    throw new Error('Invalid input: Product data is required')
-  }
-  try {
-    console.log('🚀 ~ createProduct ~ inputItem:', inputItem)
-    return await prisma.party.create({
-      data: {
-        name: inputItem.name,
-        contact: Number(inputItem.contact),
-        receive_amount: Number(inputItem.receive_amount),
-        pay_amount: Number(inputItem.pay_amount),
-        gstIn: inputItem.gstIn,
-        gst_type: inputItem.gst_type,
-        address: inputItem.address,
-        email: inputItem.email,
-      },
-    })
-  } catch (error) {
-    console.error('🚀 ~ createProduct ~ error:', error)
-    throw new Error('Failed to create product')
-  }
-}

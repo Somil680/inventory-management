@@ -1,6 +1,6 @@
 'use client'
 import React from 'react'
-import InvoiceBill from '@/components/InvoiceBill'
+import InvoiceBill from '@/components/InvoiceBill/saleBill'
 
 const SaleReturn: React.FC = () => {
   return (
@@ -9,7 +9,9 @@ const SaleReturn: React.FC = () => {
         <h1 className="text-2xl font-bold">Sale Return</h1>
       </div>
       <div>
-        <InvoiceBill invoiceType={'sale_return'} gstType="OUTPUT" switchBtn={true} />
+        <InvoiceBill
+          invoiceType={'sale_return'}
+        />
       </div>
     </div>
   )

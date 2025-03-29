@@ -28,6 +28,11 @@ import {
 import Link from 'next/link'
 import { useDispatch } from 'react-redux'
 import { openModal } from '@/redux/slices/modal'
+import { useQueryClient } from '@tanstack/react-query'
+import { fetchExpensesCategory } from '@/lib/ExpenseAction'
+import { fetchProduct } from '@/lib/productAction'
+import { fetchParty } from '@/lib/client'
+import { fetchProperties } from '@/lib/actions'
 
 export function NavMain({
   items,
@@ -44,21 +49,39 @@ export function NavMain({
   }[]
 }) {
   const dispatch = useDispatch()
+  const queryClient = useQueryClient()
+  const handleOpenModal = (type: string) => {
+    dispatch(
+      openModal({
+        type: type,
+      })
+    )
+  }
+  const prefetchExpenseData = async () => {
+    await queryClient.prefetchQuery({
+      queryKey: ['ExpenseCategory'],
+      queryFn: fetchExpensesCategory,
+    })
+  }
+  const prefetchProductData = async () => {
+    await queryClient.prefetchQuery({
+      queryKey: ['Product'],
+      queryFn: fetchProduct,
+    })
+  }
+  const prefetchPartyData = async () => {
+    await queryClient.prefetchQuery({
+      queryKey: ['Party'],
+      queryFn: fetchParty,
+    })
+  }
+  const prefetchPropertiesData = async () => {
+    await queryClient.prefetchQuery({
+      queryKey: ['Properties'],
+      queryFn: fetchProperties,
+    })
+  }
 
-  const openItemModal = () => {
-    dispatch(
-      openModal({
-        type: 'Items',
-      })
-    )
-  }
-  const openPartyModal = () => {
-    dispatch(
-      openModal({
-        type: 'Party',
-      })
-    )
-  }
   return (
     <SidebarGroup>
       {/* <SidebarGroupLabel>Platform</SidebarGroupLabel> */}
@@ -73,29 +96,41 @@ export function NavMain({
           </SidebarMenuButton>
           <SidebarMenuButton tooltip={'oo'}>
             {<Group />}
-            <Link href={'/properties'} className=" w-full">
+            <Link
+              href={'/properties'}
+              className=" w-full"
+              onMouseEnter={prefetchPropertiesData}
+            >
               <span>{'Properties'}</span>
             </Link>
             {/* <Plus className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" /> */}
           </SidebarMenuButton>
           <SidebarMenuButton tooltip={'oo'}>
             {<ShoppingBasket />}
-            <Link href={'/items'} className=" w-full">
+            <Link
+              href={'/items'}
+              className=" w-full"
+              onMouseEnter={prefetchProductData}
+            >
               <span>{'Items'}</span>
             </Link>
             <Plus
               className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
-              onClick={() => openItemModal()}
+              onClick={() => handleOpenModal('Item')}
             />
           </SidebarMenuButton>
           <SidebarMenuButton tooltip={'oo'}>
             {<Users />}
-            <Link href={'/parties'} className=" w-full">
+            <Link
+              href={'/parties'}
+              className=" w-full"
+              onMouseEnter={prefetchPartyData}
+            >
               <span>{'Parties'}</span>
             </Link>
             <Plus
               className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
-              onClick={() => openPartyModal()}
+              onClick={() => handleOpenModal('Party')}
             />
           </SidebarMenuButton>
           {items.map((item) => (
@@ -132,16 +167,19 @@ export function NavMain({
             </Collapsible>
           ))}
           <SidebarMenuButton tooltip={'oo'}>
-            {<Wallet/>}
-            <Link href={'/expenses'} className=" w-full">
+            {<Wallet />}
+            <Link
+              href={'/expenses'}
+              className=" w-full"
+              onMouseEnter={prefetchExpenseData}
+            >
               <span>{'Expenses'}</span>
             </Link>
             <Plus
               className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
-              onClick={() => openPartyModal()}
+              onClick={() => handleOpenModal('Expense')}
             />
           </SidebarMenuButton>
-       
         </SidebarMenuItem>
       </SidebarMenu>
     </SidebarGroup>

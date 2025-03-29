@@ -16,7 +16,7 @@ import { closeModal } from '@/redux/slices/modal'
 import { v4 as uuidv4 } from 'uuid'
 import { toast } from 'sonner'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { createParty } from '@/lib/actions'
+import { createParty } from '@/lib/client'
 
 const PartModal = () => {
   const queryClient = useQueryClient()
@@ -68,7 +68,7 @@ const PartModal = () => {
         gst_type: inputItem.gst_type,
         address: inputItem.address,
         email: inputItem.email,
-        party_type: inputItem.party_type,
+        party_type: inputItem.party_type, // Added party_type
       }
       createPartyDetails.mutate(partyDetails)
     } catch (error) {

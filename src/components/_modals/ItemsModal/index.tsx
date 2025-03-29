@@ -32,10 +32,10 @@ const ItemModal = () => {
     category: '',
     sub_category: '',
     unit: null,
-    sale_price: null,
-    purchase_price: null,
+    sale_price: 0,
+    purchase_price: 0,
     taxs: 18,
-    opening_quantity: null,
+    opening_quantity: 0,
     location: '',
   })
 
@@ -105,6 +105,7 @@ const ItemModal = () => {
     )?.name
     try {
       if (!editData) {
+        console.log("🚀 ~ insertData ~ inputItem:", inputItem)
         createProducts.mutate(inputItem)
       } else {
         handleUpdateProduct.mutate()
@@ -127,10 +128,10 @@ const ItemModal = () => {
         category: '',
         sub_category: '',
         unit: null,
-        sale_price: null,
-        purchase_price: null,
+        sale_price: 0,
+        purchase_price: 0,
         taxs: 18,
-        opening_quantity: null,
+        opening_quantity: 0,
         location: '',
       })
     }
@@ -189,8 +190,8 @@ const ItemModal = () => {
         <div className="flex gap-4 items-center">
           <Select
             required
-            // defaultValue="18"
-            // value={inputItem.taxes ?? 18}
+            defaultValue="18"
+            value={inputItem.taxs.toString() }
             onValueChange={(value) =>
               setItemInput((prev) => {
                 return {
@@ -229,7 +230,7 @@ const ItemModal = () => {
             type="number"
             name="sale_price"
             required
-            value={inputItem.sale_price ?? ''}
+            value={inputItem.sale_price?.toString() ?? ''}
             onChange={handleInputChange}
           />
 
@@ -238,7 +239,7 @@ const ItemModal = () => {
             type="number"
             name="purchase_price"
             required
-            value={inputItem.purchase_price ?? ''}
+            value={inputItem.purchase_price.toString() ?? ''}
             onChange={handleInputChange}
           />
         </div>

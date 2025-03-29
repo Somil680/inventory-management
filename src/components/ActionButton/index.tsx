@@ -8,11 +8,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu'
-import { Party, Product } from '@/lib/type'
+import { BankAccount, Party, Product } from '@/lib/type'
 
 type EditDataType =
   | { type: 'Items'; editData: Product}
   | { type: 'Party'; editData: Party }
+  | { type: 'BankAccount'; editData: BankAccount }
   | { type: ''; editData: [] }
 
 const ActionButton: React.FC<EditDataType> = ({ type, editData }) => {

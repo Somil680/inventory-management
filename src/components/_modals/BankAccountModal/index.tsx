@@ -10,6 +10,8 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { createBankAccount } from '@/lib/paymentAction'
 
 const BankAccountModal = () => {
+  // const { editData } = useSelector((state: RootState) => state.modal)
+  // console.log("🚀 ~ BankAccountModal ~ editData:", editData)
   const queryClient = useQueryClient()
   const [upiCheck, setUpiCheck] = useState(false)
 

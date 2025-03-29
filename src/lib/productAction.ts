@@ -1,12 +1,13 @@
 'use server'
 
+import { formatPrice } from '@/hooks/hook'
 import prisma from './prisma'
 import { Product } from './type'
 
 // * THIS WILL FETCH PRODUCTS
 export async function fetchProduct() {
   try {
-    return await prisma.product.findMany({
+    const products = await prisma.product.findMany({
       select: {
         id: true,
         name: true,
@@ -21,8 +22,19 @@ export async function fetchProduct() {
         location: true,
         sub_category_product: true,
         category_product: true,
+        created_at: true,
+      },
+      orderBy: {
+        created_at: 'desc',
       },
     })
+
+    // Format prices after fetching
+    return products.map((product) => ({
+      ...product,
+      sale_price: Number(formatPrice(product.sale_price ?? 0)),
+      purchase_price: Number(formatPrice(product.purchase_price ?? 0)),
+    }))
   } catch (error) {
     console.log('🚀 ~ fetchProduct ~ error:', error)
     throw new Error('Failed to fetchProduct')
@@ -44,8 +56,10 @@ export async function createProduct(products: Product) {
         hsn: products.hsn,
         location: products.location,
         opening_quantity: Number(products.opening_quantity),
-        purchase_price: Number(products.purchase_price),
-        sale_price: Number(products.sale_price),
+        purchase_price: BigInt(
+          Math.round(Number(products.purchase_price ?? 0) * 100)
+        ),
+        sale_price: BigInt(Math.round(Number(products.sale_price ?? 0) * 100)),
         sub_category: products.sub_category,
         taxs: products.taxs,
         unit: products.unit,
@@ -57,7 +71,7 @@ export async function createProduct(products: Product) {
   }
 }
 // * THIS WILL UPDATE PRODUCT
-export async function updateProduct(products: Product , id :string) {
+export async function updateProduct(products: Product, id: string) {
   if (!products || typeof products !== 'object') {
     throw new Error('Invalid input: Product data is required')
   }
@@ -65,15 +79,15 @@ export async function updateProduct(products: Product , id :string) {
   try {
     console.log('🚀 ~ createProduct ~ products:', products)
     return await prisma.product.update({
-      where : {id : id},
+      where: { id: id },
       data: {
         name: products.name,
         category: products.category,
         hsn: products.hsn,
         location: products.location,
         opening_quantity: Number(products.opening_quantity),
-        purchase_price: Number(products.purchase_price),
-        sale_price: Number(products.sale_price),
+        purchase_price: BigInt(Math.round(Number(products.purchase_price ?? 0) * 100)),
+        sale_price: BigInt(Math.round(Number(products.sale_price ?? 0) * 100)),
         sub_category: products.sub_category,
         taxs: products.taxs,
         unit: products.unit,

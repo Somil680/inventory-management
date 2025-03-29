@@ -5,10 +5,10 @@ export interface Product {
   category: string
   sub_category: string
   unit: string | null
-  sale_price: null | number
-  purchase_price: null | number
+  sale_price:  number | bigint
+  purchase_price: number | bigint
   taxs: number
-  opening_quantity: number | null
+  opening_quantity: number
   location: string
   created_at?: string | Date // created_at is optional and can be a string or Date object
   updated_at?: string | Date
@@ -65,9 +65,11 @@ export interface Invoice {
     | 'payment_out'
     | null
   party_id: string | null
-  bill_amount: number | null
+  bill_amount: number 
   discount_on_amount: number
-  payment_type: string| null
+  payment_type: string | null
+  remaining_amount : number
+  paid_amount : number
   // payment_type: 'Cash' | 'Online' | 'RTGS' | 'UnPaid' | null
 }
 export interface SaleItem {
@@ -89,10 +91,21 @@ export interface BankAccountInput {
   upi_number: string
   account_holder_name: string
 }
+
+export interface BankAccount {
+  id: string
+  account_number: number | null
+  IFSC_code: string | null
+  upi_number: string | null
+  account_holder_name: string | null
+  balance: number | null
+  account_name: string | null
+}
+
 export type BankTransaction = {
   id: string
-  from_bank_id: string |null
-  to_bank_id: string|null
+  from_bank_id: string | null
+  to_bank_id: string | null
   transaction_type:
     | 'cash_withdrawal'
     | 'cash_deposit'
@@ -102,8 +115,8 @@ export type BankTransaction = {
     | 'bank_adjustment_decrease'
     | null
   description: string
-  date: string
-  balance: number|null
+  date: Date | string
+  balance: number | null
 }
 export interface SaleItemE {
   id: string

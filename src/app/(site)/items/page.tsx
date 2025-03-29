@@ -2,13 +2,7 @@
 import { Button } from '@/components/ui/button'
 import FloatingInput from '@/components/ui/floating-input'
 import { openModal } from '@/redux/slices/modal'
-import {
-  
-  LoaderCircle,
-  Plus,
-  SlidersVertical,
-  X,
-} from 'lucide-react'
+import { LoaderCircle, Plus, SlidersVertical, X } from 'lucide-react'
 import React, { ChangeEvent, Suspense, useEffect, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import {
@@ -35,6 +29,7 @@ const Items = () => {
     queryKey: ['Product'],
     queryFn: fetchProduct,
   })
+  console.log('🚀 ~ Items ~ data:', data)
 
   function groupOptions(id: string) {
     return queryOptions({
@@ -62,10 +57,10 @@ const Items = () => {
       total.qty += item.opening_quantity ?? 0
     })
     data.forEach((item) => {
-      total.sale += item.sale_price ?? 0
+      total.sale += Number(item.sale_price ?? 0)
     })
     data.forEach((item) => {
-      total.purchase += item.purchase_price ?? 0
+      total.purchase += Number(item.purchase_price ?? 0)
     })
     total.stockValue = total.qty * total.sale
     return total
@@ -82,7 +77,7 @@ const Items = () => {
     opening_quantity: 0,
     purchase_price: 0,
     sale_price: 0,
-    taxs: 0,
+    taxs: 18,
     location: '',
   })
   const [filterProduct, setFilterProduct] = useState('')
@@ -105,23 +100,50 @@ const Items = () => {
     }
   }
   useEffect(() => {
-    if (!data) return
-    setSelectProduct([
-      {
-        ...data[0],
-        hsn: data[0].hsn ?? '',
-        unit: data[0].unit ?? '',
-        category: data[0].category ?? '',
-        sub_category: data[0].sub_category ?? '',
-        location: data[0].location ?? '',
-        sale_price: data[0].sale_price ?? 0,
-        purchase_price: data[0].purchase_price ?? 0,
-        opening_quantity: data[0].opening_quantity ?? 0,
-        taxs: data[0].taxs ?? 0,
-      },
-    ])
-    setSelectedId(data[0].id)
+    if (data !== undefined && !isLoading) {
+      console.log("🚀 ~ useEffect ~ data[0]:", data[0])
+      setSelectProduct([
+        {
+          ...data[0],
+          hsn: data[0].hsn ?? '',
+          unit: data[0].unit ?? '',
+          category: data[0].category ?? '',
+          sub_category: data[0].sub_category ?? '',
+          location: data[0].location ?? '',
+          sale_price: Number(data[0].sale_price) ?? 0,
+          purchase_price: Number(data[0].purchase_price) ?? 0,
+          opening_quantity: data[0].opening_quantity ?? 0,
+          taxs: data[0].taxs ?? 0,
+          created_at: data[0].created_at ?? '',
+        },
+      ])
+      setSelectedId(data[0].id)
+    }
   }, [isLoading])
+
+  const [sortOrder, setSortOrder] = useState('asc')
+
+  // Function to filter and sort data
+  const filterAndSortData = () => {
+    if (!data) return []
+
+    return data
+      .filter(
+        (item) =>
+          item.name.toLowerCase().includes(filterProduct?.toLowerCase()) &&
+          item?.category
+            ?.toLowerCase()
+            .includes(inputItem.category?.toLowerCase()) &&
+          item?.sub_category
+            ?.toLowerCase()
+            .includes(inputItem.sub_category?.toLowerCase())
+      )
+      // .sort((a, b) => {
+      //   const qtyA = a?.opening_quantity ?? 0
+      //   const qtyB = b?.opening_quantity ?? 0
+      //   return sortOrder === 'asc' ? qtyA - qtyB : qtyB - qtyA
+      // })
+  }
 
   return (
     <main className="w-full flex gap-3 h-full ">
@@ -163,7 +185,15 @@ const Items = () => {
                       }
                     />
                   )}
-                </div>
+                </div> 
+
+                {/* <Button
+                  onClick={() =>
+                    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))
+                  }
+                >
+                  Sort by Quantity {sortOrder === 'asc' ? '↑' : '↓'}
+                </Button> */}
               </div>
             </div>
             <div className="overflow-y-auto whitespace-nowrap">
@@ -178,74 +208,60 @@ const Items = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody className=" ">
-                  {data &&
-                    data
-                      .filter(
-                        (item) =>
-                          item.name
-                            .toLowerCase()
-                            .includes(filterProduct?.toLowerCase()) &&
-                          item?.category &&
-                          item?.category
-                            .toLowerCase()
-                            .includes(inputItem.category?.toLowerCase()) &&
-                          item?.sub_category &&
-                          item?.sub_category
-                            .toLowerCase()
-                            .includes(inputItem.sub_category?.toLowerCase())
-                      )
-                      .map((item) => (
-                        <Suspense fallback={'...Loading'} key={item.id}>
-                          <TableRow
-                            className=""
-                            key={item.id}
-                            onClick={() => {
-                              setSelectedId(item.id)
-                              setSelectProduct([
-                                {
-                                  ...item,
-                                  hsn: item.hsn ?? '',
-                                  unit: item.unit ?? '',
-                                  category: item.category ?? '',
-                                  sub_category: item.sub_category ?? '',
-                                  location: item.location ?? '',
-                                  sale_price: item.sale_price ?? 0,
-                                  purchase_price: item.purchase_price ?? 0,
-                                  opening_quantity: item.opening_quantity ?? 0,
-                                  taxs: item.taxs ?? 0,
-                                },
-                              ])
-                            }}
+                  { filterAndSortData().map((item) => (
+                      <Suspense fallback={'...Loading'} key={item.id}>
+                        <TableRow
+                          className=""
+                          key={item.id}
+                          onClick={() => {
+                            setSelectedId(item.id)
+                            setSelectProduct([
+                              {
+                                ...item,
+                                hsn: item.hsn ?? '',
+                                unit: item.unit ?? '',
+                                category: item.category ?? '',
+                                sub_category: item.sub_category ?? '',
+                                location: item.location ?? '',
+                                sale_price: Number(item.sale_price) ?? 0,
+                                purchase_price:
+                                  Number(item.purchase_price) ?? 0,
+                                opening_quantity: item.opening_quantity ?? 0,
+                                taxs: item.taxs ?? 0,
+                                created_at: item.created_at ?? '',
+                              },
+                            ])
+                          }}
+                        >
+                          <TableCell className="font-semibold">
+                            {item.name.toUpperCase()}
+                          </TableCell>
+                          <TableCell className="flex gap-2">
+                            <span className="bg-neutral-100  text-gray-700 rounded-full px-2">
+                              {item.category_product &&
+                                item.category_product.title}
+                            </span>
+                            <span className="bg-neutral-100 text-gray-700 rounded-full px-2">
+                              {item.sub_category_product &&
+                                item.sub_category_product.title}
+                            </span>
+                          </TableCell>
+                          <TableCell
+                            className={`text-right  font-semibold ${
+                              (item.opening_quantity ?? 0) > 10
+                                ? 'text-green-600'
+                                : 'text-red-600'
+                            }`}
                           >
-                            <TableCell className="font-semibold">
-                              {item.name.toUpperCase()}
-                            </TableCell>
-                            <TableCell className="flex gap-2">
-                              <span className="bg-neutral-100  text-gray-700 rounded-full px-2">
-                                {item.category_product &&
-                                  item.category_product.title}
-                              </span>
-                              <span className="bg-neutral-100 text-gray-700 rounded-full px-2">
-                                {item.sub_category_product &&
-                                  item.sub_category_product.title}
-                              </span>
-                            </TableCell>
-                            <TableCell
-                              className={`text-right  font-semibold ${
-                                (item.opening_quantity ?? 0) > 10
-                                  ? 'text-green-600'
-                                  : 'text-red-600'
-                              }`}
-                            >
-                              {item.opening_quantity}
-                            </TableCell>
-                            <TableCell className="text-right w-5">
-                              <ActionButton  type={'Items'} editData={item}/>
-                             
-                            </TableCell>
-                          </TableRow>
-                        </Suspense>
-                      ))}
+                            {item.opening_quantity}
+                          </TableCell>
+                          <TableCell className="text-right w-5">
+                            <ActionButton type={'Items'} editData={item} />
+                          </TableCell>
+                        </TableRow>
+                      </Suspense>
+                    ))
+                  }
                 </TableBody>
               </Table>
             </div>
@@ -276,7 +292,11 @@ const Items = () => {
                     <span className="text-green-600">
                       {selectProduct
                         ? selectProduct?.map((item) =>
-                            formatCurrencyINR(item?.sale_price ?? 0)
+                            formatCurrencyINR(
+                              typeof item?.sale_price === 'bigint'
+                                ? item.sale_price.toString()
+                                : item?.sale_price ?? 0
+                            )
                           )
                         : formatCurrencyINR(TotalQuantity().sale)}
                     </span>
@@ -286,9 +306,9 @@ const Items = () => {
                     <span className="text-green-600">
                       {selectProduct
                         ? selectProduct?.map((item) =>
-                            formatCurrencyINR(item?.purchase_price ?? 0)
+                            formatCurrencyINR(item.purchase_price.toString())
                           )
-                        : formatCurrencyINR(TotalQuantity().purchase)}{' '}
+                        : formatCurrencyINR(TotalQuantity().purchase)}
                     </span>
                   </p>
                 </div>
@@ -374,26 +394,28 @@ const Items = () => {
                               .includes(filterTransaction.toLowerCase())
                           )
                           .map((item, index) => (
-                              <TableRow key={item.id}>
-                                <TableCell className="">{index + 1}</TableCell>
-                                <TableCell className="">
-                                  {item.invoice?.invoice_type?.toLocaleUpperCase()}
-                                </TableCell>
-                                <TableCell className="">
-                                  {item.invoice?.invoice_no}
-                                </TableCell>
+                            <TableRow key={item.id}>
+                              <TableCell className="">{index + 1}</TableCell>
+                              <TableCell className="">
+                                {item.invoice?.invoice_type?.toLocaleUpperCase()}
+                              </TableCell>
+                              <TableCell className="">
+                                {item.invoice?.invoice_no}
+                              </TableCell>
 
-                                <TableCell className="w-24">
-                                  {formatDate(item.invoice?.invoice_date)}
-                                </TableCell>
-                                <TableCell className="w-24">
-                                  {item?.description}
-                                </TableCell>
-                                <TableCell className="">{item.qty}</TableCell>
-                                <TableCell className="text-right text-green-600 w-24">
-                                  {formatCurrencyINR(item.price_per_unit)}
-                                </TableCell>
-                              </TableRow>
+                              <TableCell className="w-24">
+                                {formatDate(item.invoice?.invoice_date)}
+                              </TableCell>
+                              <TableCell className="w-24">
+                                {item?.description}
+                              </TableCell>
+                              <TableCell className="">{item.qty}</TableCell>
+                              <TableCell className="text-right text-green-600 w-24">
+                                {formatCurrencyINR(
+                                  item.price_per_unit.toString()
+                                )}
+                              </TableCell>
+                            </TableRow>
                           ))}
                     </>
                   </TableBody>

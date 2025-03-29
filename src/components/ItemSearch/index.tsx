@@ -24,7 +24,7 @@ interface InputValue {
 
 const Autocomplete: React.FC<AutocompleteProps> = ({ rowNo , onDataChange   }) => {
   const dispatch: AppDispatch = useDispatch()
-  const { items, loading, error } = useSelector(
+  const { items, } = useSelector(
     (state: RootState) => state.items
   )
   const [inputValue, setInputValue] = useState<InputValue>({

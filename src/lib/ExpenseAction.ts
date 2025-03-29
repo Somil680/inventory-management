@@ -1,31 +1,38 @@
 'use server'
 
-import { format ,parseISO } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import prisma from '../lib/prisma'
+import { formatPrice } from '@/hooks/hook'
 
 export async function fetchExpenses(startDate: string, endDate: string) {
-  console.log("🚀 ~ fetchExpenses ~ endDate:", endDate)
-  console.log("🚀 ~ fetchExpenses ~ startDate:", startDate)
   try {
-    // Convert input dates to ISO format (YYYY-MM-DD) for Prisma filtering
-    const formattedStartDate = format(parseISO(new Date(startDate).toISOString()), "yyyy-MM-dd")
-    const formattedEndDate = format(parseISO(new Date(endDate).toISOString()), "yyyy-MM-dd")
+    const formattedStartDate = format(
+      parseISO(new Date(startDate).toISOString()),
+      'yyyy-MM-dd'
+    )
+    const formattedEndDate = format(
+      parseISO(new Date(endDate).toISOString()),
+      'yyyy-MM-dd'
+    )
 
-    return await prisma.expenses.findMany({
+    const expense = await prisma.expenses.findMany({
       where: {
         expense_date: {
           gte: new Date(`${formattedStartDate}T00:00:00.000Z`), // Start of the day
-          lte: new Date(`${formattedEndDate}T23:59:59.999Z`),  // End of the day
-        }
+          lte: new Date(`${formattedEndDate}T23:59:59.999Z`), // End of the day
+        },
       },
       select: {
         id: true,
         payment: true,
         bill_amount: true,
-        expense_date : true
+        expense_date: true,
       },
-      
     })
+    return expense.map((item) => ({
+      ...item,
+      bill_amount: formatPrice(item.bill_amount ?? 0),
+    }))
   } catch (error) {
     console.log('🚀 ~ fetchProperties ~ error:', error)
     throw new Error('Failed to fetch properties')
@@ -33,7 +40,7 @@ export async function fetchExpenses(startDate: string, endDate: string) {
 }
 export async function fetchExpensesCategory() {
   try {
-    return await prisma.expenses_category.findMany({
+    const expenses = await prisma.expenses_category.findMany({
       select: {
         id: true,
         title: true,
@@ -52,6 +59,14 @@ export async function fetchExpensesCategory() {
         expense_balance: true,
       },
     })
+    return expenses.map((expense) => ({
+      ...expense,
+      expense_balance: formatPrice(expense.expense_balance ?? 0),
+      expense_category: expense.expense_category.map((category) => ({
+        ...category,
+        bill_amount: formatPrice(category.bill_amount ?? 0),
+      })),
+    }))
   } catch (error) {
     console.log('🚀 ~ fetchProperties ~ error:', error)
     throw new Error('Failed to fetch properties')
@@ -72,7 +87,9 @@ export async function createExpensesCategory(inputItem: ExpenseCategoryInput) {
       data: {
         id: inputItem.id,
         title: inputItem.title,
-        expense_balance: Number(inputItem.expense_balance),
+        expense_balance: BigInt(
+          Math.round(Number(inputItem.expense_balance ?? 0) * 100)
+        ),
       },
     })
   } catch (error) {
@@ -100,7 +117,9 @@ export async function createExpenses(inputItem: ExpenseInput) {
       data: {
         item: inputItem.item,
         expense_category: inputItem.expense_category,
-        bill_amount: Number(inputItem.bill_amount),
+        bill_amount: BigInt(
+          Math.round(Number(inputItem.bill_amount ?? 0) * 100)
+        ),
         expense_date: inputItem.expense_date,
         payment_type: inputItem.payment_type,
       },

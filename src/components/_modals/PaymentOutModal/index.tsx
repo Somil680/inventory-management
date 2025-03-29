@@ -51,26 +51,30 @@ import { v4 as uuidv4 } from 'uuid'
 // ]
 const PaymentOut = () => {
   const dispatch = useDispatch<AppDispatch>()
-    const { data, isLoading, error } = useQuery({
-      queryKey: ['Party'],
-      queryFn: fetchParty,
-    })
-    const { data : paymentType } = useQuery({
-      queryKey: ['Payment'],
-      queryFn: fetchBankAccount,
-    })
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['Party'],
+    queryFn: fetchParty,
+  })
+  const { data: paymentType } = useQuery({
+    queryKey: ['Payment'],
+    queryFn: fetchBankAccount,
+  })
   const [inputItem, setItemInput] = useState<{
-    invoice_no: string;
-    invoice_date: Date;
-    payment_type: string | null;
-    party_id: string;
-    bill_amount: number | null;
+    invoice_no: string
+    invoice_date: Date
+    payment_type: string | null
+    party_id: string
+    bill_amount: number 
+    remaining_amount: number 
+    paid_amount: number
   }>({
     invoice_no: '',
     invoice_date: new Date(),
     payment_type: null,
     party_id: '',
-    bill_amount: null,
+    bill_amount: 0,
+    remaining_amount: 0,
+    paid_amount: 0,
   })
   const handleInputChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -105,41 +109,43 @@ const PaymentOut = () => {
     setPartyDropdownOpen(false) // Close the dropdown
   }
 
-    const invoiceMutation = useMutation({
-      mutationFn: createInvoice,
-      onSuccess: () => {
-        console.log('invoice success')
-      },
-      onError: () => {
-        console.log('invoice error')
-      },
-    })
+  const invoiceMutation = useMutation({
+    mutationFn: createInvoice,
+    onSuccess: () => {
+      console.log('invoice success')
+    },
+    onError: () => {
+      console.log('invoice error')
+    },
+  })
 
-    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-      event.preventDefault()
-      try {
-        const invoiceId = uuidv4()
-        const updatedInvoice = {
-          ...inputItem,
-          id: invoiceId,
-          billing_name: '', // Add appropriate value
-          invoice_type: 'payment_out' as const, // Add appropriate value
-          discount_on_amount: 0, // Add appropriate value
-          payment_type: inputItem.payment_type ?? '', // Ensure payment_type is a string
-        }
-
-        invoiceMutation.mutate(updatedInvoice)
-      } catch (error) {
-        if (error instanceof Error) {
-          toast.error(error.message)
-        } else {
-              toast.error(`Error on saving payment ${error}`)
-        }
-        console.log('🚀 ~ handleSubmit ~ error:', error)
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    try {
+      const invoiceId = uuidv4()
+      const updatedInvoice = {
+        ...inputItem,
+        id: invoiceId,
+        billing_name: '', // Add appropriate value
+        invoice_type: 'payment_out' as const, // Add appropriate value
+        discount_on_amount: 0, // Add appropriate value
+        payment_type: inputItem.payment_type ?? '', // Ensure payment_type is a string
+        remaining_amount: inputItem.remaining_amount ?? 0, // Add appropriate value
+        paid_amount: inputItem.paid_amount ?? 0, // Add appropriate value
       }
-      dispatch(closeModal())
-          toast.success('Payment Out saved successfully')
+
+      invoiceMutation.mutate(updatedInvoice)
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message)
+      } else {
+        toast.error(`Error on saving payment ${error}`)
+      }
+      console.log('🚀 ~ handleSubmit ~ error:', error)
     }
+    dispatch(closeModal())
+    toast.success('Payment Out saved successfully')
+  }
 
   return (
     <div className="w-[800px]">
@@ -166,13 +172,14 @@ const PaymentOut = () => {
                 <SelectValue placeholder="Account" />
               </SelectTrigger>
               <SelectContent>
-                {paymentType && paymentType.map((item) => (
-                  <>
-                    <SelectItem value={item.id} key={item.id}>
-                      {item.account_name}
-                    </SelectItem>
-                  </>
-                ))}
+                {paymentType &&
+                  paymentType.map((item) => (
+                    <>
+                      <SelectItem value={item.id} key={item.id}>
+                        {item.account_name}
+                      </SelectItem>
+                    </>
+                  ))}
               </SelectContent>
             </Select>
           </div>
@@ -248,7 +255,7 @@ const PaymentOut = () => {
                                         <td> {item.name}</td>
                                         <td className="text-right">
                                           {formatCurrencyINR(
-                                            item.pay_amount ?? 0
+                                            item?.pay_amount?.toString() ?? 0
                                           )}
                                         </td>
                                       </tr>

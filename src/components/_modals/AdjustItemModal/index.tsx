@@ -33,6 +33,8 @@ const AdjustmentItemModal = () => {
     payment_type: null,
     discount_on_amount: 0,
     billing_name: '',
+    remaining_amount: 0,
+    paid_amount: 0,
   })
 
   const handleInputChange = (
@@ -97,7 +99,9 @@ const AdjustmentItemModal = () => {
           amount: saleItem.amount ?? 0,
         }))
       if (saleProductsToInsert.length > 0) {
-        invoiceProductMutation.mutate(saleProductsToInsert)
+        saleProductsToInsert.forEach((product) => {
+          invoiceProductMutation.mutate(product)
+        })
       }
     } catch (error) {
       if (error instanceof Error) {

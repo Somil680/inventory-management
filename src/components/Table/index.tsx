@@ -299,7 +299,7 @@ const TableSale: React.FC<TableSaleProps> = ({ type }) => {
               <TableCell className=" border">
                 {item.tax && item.tax + ' % '}
               </TableCell>
-              <TableCell className=" border">{item.taxAmt}</TableCell>
+              <TableCell className=" border">{item.taxAmt?.toFixed(2)}</TableCell>
               <TableCell className=" border">
                 {/* {Math.floor((item.rate ?? 0) * 100) / 100} */}
                 {item.rate !== null && Math.floor(item.rate * 100) / 100}

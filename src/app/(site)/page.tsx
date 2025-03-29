@@ -28,82 +28,105 @@ import { fetchBankAccount } from '@/lib/paymentAction'
 import { Switch } from '@/components/ui/switch'
 import { fetchExpenses } from '@/lib/ExpenseAction'
 
-import {  useState } from 'react'
+import { useState } from 'react'
 // import { format } from 'date-fns'
-import {  fetchInvoicesOnType } from '@/lib/invoiceAction'
+import { fetchInvoicesByDate } from '@/lib/invoiceAction'
 import DateRangeSelect from '@/components/DateRangeSelect'
 import { format } from 'date-fns'
-// const chartData = [
-//   { month: 'January', desktop: 5 },
-//   { month: 'February', desktop: 5 },
-//   { month: 'March', desktop: 6 },
-//   { month: 'April', desktop: 5 },
-//   { month: 'May', desktop: 5 },
-//   { month: 'June', desktop: 5 },
-// ]
-// const chartConfig = {
-//   desktop: {
-//     label: 'Desktop',
-//     color: 'hsl(var(--chart-1))',
-//   },
-// } satisfies ChartConfig
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '@/components/ui/chart'
+import { CartesianGrid, XAxis, YAxis, Line, LineChart } from 'recharts'
+
 const HomePage = () => {
- const [expenseRange, setExpenseRange] = useState('today')
- const [invoiceRange, setInvoiceRange] = useState('today')
+  const [expenseRange, setExpenseRange] = useState('today')
+  const [invoiceRange, setInvoiceRange] = useState('today')
 
- const { startDate: expenseStart, endDate: expenseEnd } =
-   getDateRange(expenseRange)
- console.log("🚀 ~ HomePage ~ expenseEnd:", expenseEnd)
- console.log("🚀 ~ HomePage ~ expenseStart:", expenseStart)
- const { startDate: invoiceStart, endDate: invoiceEnd } =
-   getDateRange(invoiceRange)
+  const { startDate: expenseStart, endDate: expenseEnd } =
+    getDateRange(expenseRange)
+  console.log('🚀 ~ HomePage ~ expenseEnd:', expenseEnd)
+  console.log('🚀 ~ HomePage ~ expenseStart:', expenseStart)
+  const { startDate: invoiceStart, endDate: invoiceEnd } =
+    getDateRange(invoiceRange)
 
- // Query for Expenses
- const { data: expenses } = useQuery({
-   queryKey: ['Expense', expenseStart, expenseEnd],
-   queryFn: () => fetchExpenses(expenseStart, expenseEnd),
-   enabled: !!expenseStart && !!expenseEnd,
- })
- console.log("🚀 ~ HomePage ~ expenses:", expenses)
+  // Query for Expenses
+  const { data: expenses } = useQuery({
+    queryKey: ['Expense', expenseStart, expenseEnd],
+    queryFn: () => fetchExpenses(expenseStart, expenseEnd),
+    enabled: !!expenseStart && !!expenseEnd,
+  })
+  console.log('🚀 ~ HomePage ~ expenses:', expenses)
 
- // Query for Invoices
- const { data: invoice } = useQuery({
-   queryKey: ['Invoice', invoiceStart, invoiceEnd],
-   queryFn: () => fetchInvoicesOnType(invoiceStart, invoiceEnd),
-   enabled: !!invoiceStart && !!invoiceEnd,
- })
- console.log("🚀 ~ HomePage ~ invoice:", invoice)
+  // Query for Invoices
+  const { data: invoice } = useQuery({
+    queryKey: ['Invoice', invoiceStart, invoiceEnd],
+    queryFn: () => fetchInvoicesByDate(invoiceStart, invoiceEnd),
+    enabled: !!invoiceStart && !!invoiceEnd,
+  })
+  const invoiceChart = (invoice ?? [])
+    .filter(
+      (item) => item.invoice_type === 'cash' || item.invoice_type === 'credit'
+    )
+    .map((item) => {
+      return {
+        month: item.invoice_date
+          ? format(new Date(item.invoice_date), 'dd-MMM-yyyy')
+          : 'N/A',
+        Amount: item.bill_amount,
+      }
+    })
+  const chartConfig = {
+    desktop: {
+      label: 'Amount',
+      color: 'hsl(var(--chart-1))',
+    },
+    month: {
+      label: 'Date',
+      color: 'hsl(var(--chart-2))',
+    },
+  } satisfies ChartConfig
 
- // Fetch Payment Types
- const { data: paymentType } = useQuery({
-   queryKey: ['Payment'],
-   queryFn: fetchBankAccount,
- })
+  // Fetch Payment Types
+  const { data: paymentType } = useQuery({
+    queryKey: ['Payment'],
+    queryFn: fetchBankAccount,
+  })
 
- const totalExpenses = expenses
-   ? expenses.reduce((total, item) => total + (item.bill_amount ?? 0), 0)
-   : 0
-  
- const totalSale = invoice
-   ? invoice
-       .filter(
-         (item) =>
-           item.invoice_type?.toLowerCase().includes('cash') ||
-           item.invoice_type?.toLowerCase().includes('credit')
-       )
-       .reduce((total, item) => total + (item.bill_amount ?? 0), 0)
-   : 0
- const totalSaleData = invoice
- ? invoice
- .filter(
-   (item) =>
-    item.invoice_type?.toLowerCase().includes('cash') ||
-   item.invoice_type?.toLowerCase().includes('credit')
-  ).map(item => ({ month: item.invoice_date ? format(new Date(item.invoice_date), "MMM") : "N/A", amount: item.bill_amount }))
-  
-  : []
-  console.log("🚀 ~ HomePage ~ totalSaleData:", totalSaleData)
-  
+  const totalExpenses = expenses
+    ? expenses.reduce(
+        (total, item) => total + (parseFloat(item.bill_amount) || 0),
+        0
+      )
+    : 0
+
+  const totalSale = invoice
+    ? invoice
+        .filter(
+          (item) =>
+            item.invoice_type?.toLowerCase().includes('cash') ||
+            item.invoice_type?.toLowerCase().includes('credit')
+        )
+        .reduce((total, item) => total + (parseFloat(item.bill_amount) || 0), 0)
+    : 0
+  const totalSaleData = invoice
+    ? invoice
+        .filter(
+          (item) =>
+            item.invoice_type?.toLowerCase().includes('cash') ||
+            item.invoice_type?.toLowerCase().includes('credit')
+        )
+        .map((item) => ({
+          month: item.invoice_date
+            ? format(new Date(item.invoice_date), 'MMM')
+            : 'N/A',
+          amount: item.bill_amount,
+        }))
+    : []
+  console.log('🚀 ~ HomePage ~ totalSaleData:', totalSaleData)
+
   return (
     <main className="flex gap-4 p-4 pt-3 w-full">
       <section className="gap-2 w-3/4 flex flex-col">
@@ -117,6 +140,7 @@ const HomePage = () => {
                     Sale
                   </p>
                   <DateRangeSelect
+                    className="w-28"
                     onChange={setInvoiceRange}
                     initialValue="today"
                   />
@@ -138,52 +162,50 @@ const HomePage = () => {
                 </div>
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              {/* <ChartContainer
-                config={chartConfig}
-                className="border-red-500 border h-[]"
-              >
+            <CardContent className="h-full w-full">
+              <ChartContainer config={chartConfig}>
                 <LineChart
-                  className="border-2 h-[300px] "
-                  accessibilityLayer
-                  data={chartData}
+                  data={invoiceChart}
                   margin={{
                     left: 2,
                     right: 2,
                   }}
+                  height={200}
+                  accessibilityLayer
                 >
-                  <CartesianGrid accentHeight={300} vertical={true} horizontal={true} alignmentBaseline='central' amplitude={30}  />
                   <XAxis
-                    version="o"
                     dataKey="month"
                     tickLine={false}
-                    axisLine={true}
-                    tickMargin={5}
-                    tickFormatter={(value) => value.slice(0, 3)}
+                    axisLine={false}
+                    tickMargin={1}
+                    tickFormatter={(value) => value.slice(0, 0)}
                   />
 
                   <YAxis
+                    range={[0, 10000]}
                     tickLine={false}
-                    axisLine={true}
-                    tickMargin={5}
-                    // tickFormatter={(value) => value.slice(0, 3)}
+                    axisLine={false}
+                    width={40}
+                    height={200} // ✅ Reduce Y-axis width
+                    domain={['auto', 'auto']} // ✅ Auto-scale Y values
+                    allowDecimals={false} // ✅ No decimals
+                    tickFormatter={(value) => `${value}`} // ✅ Format values
                   />
 
                   <ChartTooltip
                     cursor={false}
-                    content={<ChartTooltipContent hideLabel />}
+                    content={<ChartTooltipContent indicator="dashed" />}
                   />
                   <Line
                     className="border-2  bg-red-400"
-                    height={300}
-                    dataKey="desktop"
-                    type="bump"
+                    dataKey="Amount"
+                    type=""
                     stroke="var(--color-desktop)"
                     strokeWidth={2}
                     dot={false}
                   />
                 </LineChart>
-              </ChartContainer> */}
+              </ChartContainer>
             </CardContent>
           </Card>
           <Card className="w-1/4 ">
@@ -195,6 +217,7 @@ const HomePage = () => {
                     Expense
                   </p>
                   <DateRangeSelect
+                    className="w-28"
                     onChange={setExpenseRange}
                     initialValue="today"
                   />

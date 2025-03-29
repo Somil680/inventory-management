@@ -17,7 +17,7 @@ export type ModalType =
 interface ModalState {
   activeModal: ModalType
   data: BankAccount[]
-  editData: Product | Party | [] |null
+  editData: Product | Party | BankAccount | [] | null
   onModalClose?: (() => void) | null
   getData?: () => Promise<void> | null
   types?: string
@@ -39,7 +39,7 @@ const modalSlice = createSlice({
         type: ModalType
         onModalClose?: () => void
         data?: BankAccount[]
-        editData?: Product | Party | []
+        editData?: Product | Party | BankAccount | []
         types?: string
         index?: string
         getData?: () => Promise<void>

@@ -1,6 +1,6 @@
 'use client'
 import React from 'react'
-import InvoiceBill from '@/components/InvoiceBill'
+import PurchaseInvoiceBill from '@/components/InvoiceBill/purchaseBill'
 
 const PurchaseReturn: React.FC = () => {
   return (
@@ -9,7 +9,8 @@ const PurchaseReturn: React.FC = () => {
         <h1 className="text-2xl font-bold">Purchase Return</h1>
       </div>
       <div>
-        <InvoiceBill invoiceType={'purchase_return'} gstType="INPUT" switchBtn={false} />
+        <PurchaseInvoiceBill invoiceType={'purchase_return'}  />
+        
       </div>
     </div>
   )

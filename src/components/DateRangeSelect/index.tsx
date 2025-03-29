@@ -11,9 +11,11 @@ import { useState, useEffect } from 'react'
 interface DateRangeSelectProps {
   onChange: (value: string) => void
   initialValue?: string
+  className?: string
 }
 
 const DateRangeSelect: React.FC<DateRangeSelectProps> = ({
+  className,
   onChange,
   initialValue = 'today',
 }) => {
@@ -24,8 +26,8 @@ const DateRangeSelect: React.FC<DateRangeSelectProps> = ({
   }, [inputItem, onChange])
 
   return (
-    <Select value={inputItem} onValueChange={setInputItem}>
-      <SelectTrigger className="w-28">
+    <Select value={inputItem} onValueChange={setInputItem} >
+      <SelectTrigger className={className}>
         <SelectValue placeholder="Select Date Range" />
       </SelectTrigger>
       <SelectContent>
